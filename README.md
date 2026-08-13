@@ -14,6 +14,8 @@ HelpHive makes it easy for neighbors to request a hand or offer their time and s
 
 This is a complete full-stack project rather than a portfolio or static demo. The Angular client talks to a tested Spring Boot REST API, data is persisted with JPA, and the whole application deploys as one Docker service.
 
+**[Open the live HelpHive application →](https://helphive-community.onrender.com/)**
+
 ## Features
 
 - Create, read, edit, and delete community posts
