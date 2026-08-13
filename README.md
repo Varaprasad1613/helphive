@@ -4,7 +4,7 @@
 
 **A modern community help exchange built with Spring Boot, Angular, and PostgreSQL.**
 
-[Features](#features) · [Run locally](#run-locally) · [API](#api) · [Deploy free](#deploy-free) · [Tech stack](#tech-stack)
+[Live demo](https://helphive-community.onrender.com/) · [Features](#features) · [Run locally](#run-locally) · [API](#api) · [Deploy free](#deploy-free) · [Tech stack](#tech-stack)
 
 </div>
 
