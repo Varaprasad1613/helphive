@@ -1,0 +1,170 @@
+<header class="site-header">
+  <a class="brand" href="#top" aria-label="HelpHive home">
+    <span class="brand-mark">H</span>
+    <span>HelpHive</span>
+  </a>
+  <nav aria-label="Main navigation">
+    <a href="#board">Browse help</a>
+    <a href="#how-it-works">How it works</a>
+  </nav>
+  <button class="button button-dark button-small" (click)="openCreate()">Post a request <span>＋</span></button>
+</header>
+
+<main id="top">
+  <section class="hero">
+    <div class="hero-copy">
+      <div class="eyebrow"><span></span> Neighbors helping neighbors</div>
+      <h1>Small acts.<br><em>Real impact.</em></h1>
+      <p>Ask for a hand, share what you know, and turn the people around you into a stronger community.</p>
+      <div class="hero-actions">
+        <button class="button button-primary" (click)="openCreate('REQUEST')">Ask for help <span>↗</span></button>
+        <button class="button button-ghost" (click)="openCreate('OFFER')">Offer your time</button>
+      </div>
+      <div class="trust-line">
+        <div class="avatars"><span>MC</span><span>NW</span><span>PS</span><span>+</span></div>
+        <p><strong>{{ stats().total }} community posts</strong><br>and growing every day</p>
+      </div>
+    </div>
+    <div class="hero-art" aria-label="Illustration of a helpful community">
+      <div class="sun"></div>
+      <div class="arch arch-back"></div>
+      <div class="arch arch-front"></div>
+      <div class="community-card card-one"><span class="card-icon">⌂</span><b>Garden help</b><small>North Hills</small></div>
+      <div class="community-card card-two"><span class="card-icon">✦</span><b>Study group</b><small>Saturday · 10 AM</small></div>
+      <div class="heart">♥</div>
+      <div class="spark spark-one">✦</div><div class="spark spark-two">✦</div>
+    </div>
+  </section>
+
+  <section class="impact-strip" aria-label="Community impact">
+    <div><strong>{{ stats().open }}</strong><span>Open connections</span></div>
+    <div><strong>{{ stats().offers }}</strong><span>Skills offered</span></div>
+    <div><strong>{{ stats().requests }}</strong><span>Requests shared</span></div>
+    <div><strong>{{ stats().completed }}</strong><span>Good deeds done</span></div>
+  </section>
+
+  <section class="board" id="board">
+    <div class="section-heading">
+      <div>
+        <div class="eyebrow"><span></span> Community board</div>
+        <h2>Find your way to help</h2>
+      </div>
+      <p>Explore what people nearby need—or discover someone ready to share their time and talent.</p>
+    </div>
+
+    <div class="category-row" aria-label="Filter by category">
+      <button [class.active]="category() === ''" (click)="setCategory('')"><span>⌘</span> All</button>
+      @for (item of categories; track item.value) {
+        <button [class.active]="category() === item.value" (click)="setCategory(item.value)"><span>{{ item.icon }}</span> {{ item.label }}</button>
+      }
+    </div>
+
+    <div class="filter-bar">
+      <label class="search-box">
+        <span>⌕</span>
+        <input type="search" placeholder="Search help, skills, or places…" [value]="search()" (input)="onSearch($event)">
+      </label>
+      <label>
+        <span class="sr-only">Post type</span>
+        <select [value]="type()" (change)="setType($any($event.target).value)">
+          <option value="">Request & offer</option><option value="REQUEST">Requests</option><option value="OFFER">Offers</option>
+        </select>
+      </label>
+      <label>
+        <span class="sr-only">Status</span>
+        <select [value]="status()" (change)="setStatus($any($event.target).value)">
+          <option value="">Any status</option><option value="OPEN">Open</option><option value="IN_PROGRESS">In progress</option><option value="COMPLETED">Completed</option>
+        </select>
+      </label>
+      <span class="result-count">{{ resultLabel() }}</span>
+    </div>
+
+    @if (loading()) {
+      <div class="post-grid" aria-label="Loading posts">
+        @for (item of [1, 2, 3]; track item) { <div class="post-card skeleton"></div> }
+      </div>
+    } @else if (error()) {
+      <div class="empty-state"><div>↻</div><h3>We couldn't load the board</h3><p>{{ error() }}</p><button class="button button-dark" (click)="refresh()">Try again</button></div>
+    } @else if (posts().length === 0) {
+      <div class="empty-state"><div>⌕</div><h3>No posts match those filters</h3><p>Try a broader search or be the first person to post here.</p><button class="text-button" (click)="clearFilters()">Clear all filters</button></div>
+    } @else {
+      <div class="post-grid">
+        @for (post of posts(); track post.id) {
+          <article class="post-card" (click)="view(post)" tabindex="0" (keydown.enter)="view(post)">
+            <div class="card-topline">
+              <span class="type-tag" [class.offer]="post.type === 'OFFER'">{{ post.type === 'REQUEST' ? 'Needs a hand' : 'Happy to help' }}</span>
+              <span class="status-dot" [class.progress]="post.status === 'IN_PROGRESS'" [class.done]="post.status === 'COMPLETED'"></span>
+            </div>
+            <div class="category-icon">{{ categoryIcon(post.category) }}</div>
+            <h3>{{ post.title }}</h3>
+            <p class="description">{{ post.description }}</p>
+            <div class="meta"><span>⌖ {{ post.location }}</span><span>·</span><span>{{ post.createdAt | date:'MMM d' }}</span></div>
+            <footer>
+              <div class="author-avatar">{{ post.authorName.charAt(0) }}</div>
+              <div><b>{{ post.authorName }}</b><small>{{ categoryLabel(post.category) }}</small></div>
+              <button aria-label="View post" (click)="$event.stopPropagation(); view(post)">↗</button>
+            </footer>
+          </article>
+        }
+      </div>
+    }
+  </section>
+
+  <section class="how" id="how-it-works">
+    <div class="eyebrow light"><span></span> How it works</div>
+    <div class="how-grid">
+      <h2>Good things start<br>with a simple hello.</h2>
+      <div class="steps">
+        <article><b>01</b><div><h3>Share what you need</h3><p>Post a clear request, or offer a skill you would love to share.</p></div></article>
+        <article><b>02</b><div><h3>Make a connection</h3><p>Discover people nearby and reach out through the contact they provide.</p></div></article>
+        <article><b>03</b><div><h3>Keep kindness moving</h3><p>Mark it complete and look for the next small way to make a difference.</p></div></article>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="site-footer"><a class="brand" href="#top"><span class="brand-mark">H</span><span>HelpHive</span></a><p>Built for stronger communities.</p><span>Spring Boot · Angular · PostgreSQL</span></footer>
+
+@if (modalOpen()) {
+  <div class="modal-backdrop" (mousedown)="closeModal()">
+    <section class="modal form-modal" role="dialog" aria-modal="true" aria-labelledby="form-title" (mousedown)="$event.stopPropagation()">
+      <button class="close-button" aria-label="Close" (click)="closeModal()">×</button>
+      <div class="eyebrow"><span></span> {{ editingId() ? 'Update the details' : 'Start a connection' }}</div>
+      <h2 id="form-title">{{ editingId() ? 'Edit your post' : 'What would you like to share?' }}</h2>
+      <form [formGroup]="postForm" (ngSubmit)="submit()">
+        <div class="type-picker">
+          <label [class.selected]="postForm.controls.type.value === 'REQUEST'"><input type="radio" formControlName="type" value="REQUEST"><span>↙</span><div><b>I need help</b><small>Ask the community</small></div></label>
+          <label [class.selected]="postForm.controls.type.value === 'OFFER'"><input type="radio" formControlName="type" value="OFFER"><span>↗</span><div><b>I can help</b><small>Offer time or a skill</small></div></label>
+        </div>
+        <label>Title<input type="text" formControlName="title" placeholder="A short, specific headline"><small>{{ postForm.controls.title.value.length }}/90</small></label>
+        <label>Description<textarea rows="4" formControlName="description" placeholder="Add the details someone would need to respond…"></textarea><small>{{ postForm.controls.description.value.length }}/800</small></label>
+        <div class="form-row">
+          <label>Your name<input type="text" formControlName="authorName" placeholder="First and last name"></label>
+          <label>Email<input type="email" formControlName="contact" placeholder="you@example.com"></label>
+        </div>
+        <div class="form-row">
+          <label>Location<input type="text" formControlName="location" placeholder="Neighborhood or Online"></label>
+          <label>Category<select formControlName="category">@for (item of categories; track item.value) { <option [value]="item.value">{{ item.label }}</option> }</select></label>
+        </div>
+        @if (postForm.invalid && postForm.touched) { <p class="form-error">Please complete every field. The description needs at least 20 characters and the email must be valid.</p> }
+        <button class="button button-primary submit-button" type="submit" [disabled]="saving()">{{ saving() ? 'Saving…' : editingId() ? 'Save changes' : 'Publish to the board' }} <span>↗</span></button>
+      </form>
+    </section>
+  </div>
+}
+
+@if (selectedPost(); as post) {
+  <div class="modal-backdrop" (mousedown)="selectedPost.set(null)">
+    <section class="modal detail-modal" role="dialog" aria-modal="true" aria-labelledby="detail-title" (mousedown)="$event.stopPropagation()">
+      <button class="close-button" aria-label="Close" (click)="selectedPost.set(null)">×</button>
+      <span class="type-tag" [class.offer]="post.type === 'OFFER'">{{ post.type }}</span>
+      <h2 id="detail-title">{{ post.title }}</h2>
+      <p class="detail-description">{{ post.description }}</p>
+      <dl><div><dt>Posted by</dt><dd>{{ post.authorName }}</dd></div><div><dt>Location</dt><dd>{{ post.location }}</dd></div><div><dt>Category</dt><dd>{{ categoryLabel(post.category) }}</dd></div><div><dt>Status</dt><dd>{{ post.status.replace('_', ' ') }}</dd></div></dl>
+      <a class="contact-box" [href]="'mailto:' + post.contact"><span>✉</span><div><small>Contact {{ post.authorName.split(' ')[0] }}</small><b>{{ post.contact }}</b></div><strong>↗</strong></a>
+      <div class="detail-actions"><button class="text-button" (click)="openEdit(post)">Edit</button><button class="text-button danger" (click)="remove(post)">Delete</button>@if (post.status !== 'COMPLETED') { <button class="button button-dark" (click)="advanceStatus(post)">{{ post.status === 'OPEN' ? 'I’m helping' : 'Mark complete' }}</button> }</div>
+    </section>
+  </div>
+}
+
+@if (toast()) { <div class="toast"><span>✓</span>{{ toast() }}</div> }
