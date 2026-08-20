@@ -19,6 +19,10 @@ This is a complete full-stack project rather than a portfolio or static demo. Th
 ## Features
 
 - Create, read, edit, and delete community posts
+- Register and sign in with a secure BCrypt-hashed account
+- JWT authentication with browser-session persistence
+- Post ownership: only the creator can edit, delete, or change status
+- Contact details visible only to signed-in community members
 - Request help or offer a skill
 - Keyword, category, type, and status filters
 - Open → in progress → completed workflow
@@ -39,7 +43,8 @@ This is a complete full-stack project rather than a portfolio or static demo. Th
 
 ```mermaid
 flowchart LR
-    Browser["Angular 22 client"] -->|REST /api| API["Spring Boot 4.1 API"]
+    Browser["Angular 22 client"] -->|JWT + REST /api| API["Spring Boot 4.1 + Security"]
+    API --> Users["Users + ownership"]
     API --> JPA["Spring Data JPA"]
     JPA --> Local["H2 · local"]
     JPA --> Hosted["Neon PostgreSQL · hosted"]
@@ -52,7 +57,7 @@ The production Docker image builds Angular first, copies the static bundle into 
 | Layer | Technology |
 | --- | --- |
 | Frontend | Angular 22, TypeScript 6, RxJS, SCSS, reactive forms, signals |
-| Backend | Java 21, Spring Boot 4.1, Spring Web MVC, Bean Validation |
+| Backend | Java 21, Spring Boot 4.1, Spring Security, Spring Web MVC, Bean Validation |
 | Data | Spring Data JPA, Hibernate, H2, PostgreSQL |
 | Quality | JUnit 6, MockMvc, Vitest, GitHub Actions |
 | Delivery | Docker, Render Blueprint, Neon Postgres |
@@ -114,6 +119,18 @@ Base path: `/api/posts`
 | `PATCH` | `/api/posts/{id}/status` | Change post status |
 | `DELETE` | `/api/posts/{id}` | Delete a post |
 
+Public visitors can use `GET` endpoints. Creating or changing a post requires `Authorization: Bearer <token>`, and update/delete/status operations require ownership.
+
+### Authentication
+
+| Method | Endpoint | Purpose |
+| --- | --- | --- |
+| `POST` | `/api/auth/register` | Create an account and receive a JWT |
+| `POST` | `/api/auth/login` | Sign in and receive a JWT |
+| `GET` | `/api/auth/me` | Read the authenticated user |
+
+Passwords are never stored directly; Spring Security hashes them with BCrypt. JWTs expire after two hours by default and the Angular client keeps the token in `sessionStorage`, so closing the browser session signs the user out.
+
 List filters are optional query parameters: `search`, `category`, `type`, and `status`.
 
 Example:
@@ -163,9 +180,13 @@ jdbc:postgresql://YOUR_NEON_HOST/YOUR_DATABASE?sslmode=require
 
 5. Apply the Blueprint and wait for the first Docker build.
 
+Render automatically generates a private `JWT_SECRET` from `render.yaml`. For any non-Render production deployment, set `JWT_SECRET` to a cryptographically random value of at least 32 characters. You can optionally set `JWT_EXPIRATION` as an ISO-8601 duration such as `PT2H`.
+
 Render gives the app a free `https://...onrender.com` URL and automatically redeploys after pushes to `main`. Free Render services sleep after inactivity, so the first request after a quiet period can take about a minute. The database remains external in Neon, so data is not lost when the service sleeps or redeploys.
 
 > Never commit a real database password. The Blueprint marks all database values as secrets and asks for them in Render.
+
+Existing seeded demo posts have no owner and remain read-only. New posts are linked to the account that creates them.
 
 ## Project structure
 
@@ -184,11 +205,11 @@ helphive/
 
 ## Ideas for the next version
 
-- Spring Security login and role-based ownership
+- Email verification, password reset, and refresh-token rotation
+- Admin moderation and reporting workflows
 - Image uploads with object storage
 - Map-based distance filtering
 - Email notifications
-- Moderation and reporting
 - Pagination for larger communities
 
 ## License

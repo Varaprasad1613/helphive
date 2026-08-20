@@ -1,5 +1,6 @@
 package com.helphive.api.post;
 
+import com.helphive.api.user.AppUser;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -7,6 +8,8 @@ import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
@@ -46,6 +49,10 @@ public class HelpPost {
     @Column(nullable = false, length = 20)
     private PostStatus status = PostStatus.OPEN;
 
+    @ManyToOne(fetch = jakarta.persistence.FetchType.LAZY)
+    @JoinColumn(name = "owner_id")
+    private AppUser owner;
+
     @Column(nullable = false, updatable = false)
     private Instant createdAt;
 
@@ -80,6 +87,8 @@ public class HelpPost {
     public void setType(PostType type) { this.type = type; }
     public PostStatus getStatus() { return status; }
     public void setStatus(PostStatus status) { this.status = status; }
+    public AppUser getOwner() { return owner; }
+    public void setOwner(AppUser owner) { this.owner = owner; }
     public Instant getCreatedAt() { return createdAt; }
     public Instant getUpdatedAt() { return updatedAt; }
 }

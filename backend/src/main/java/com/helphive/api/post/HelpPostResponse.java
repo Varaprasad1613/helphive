@@ -12,13 +12,17 @@ public record HelpPostResponse(
         Category category,
         PostType type,
         PostStatus status,
+        Long ownerId,
+        boolean ownedByCurrentUser,
         Instant createdAt,
         Instant updatedAt
 ) {
-    static HelpPostResponse from(HelpPost post) {
+    static HelpPostResponse from(HelpPost post, Long currentUserId) {
+        Long ownerId = post.getOwner() == null ? null : post.getOwner().getId();
         return new HelpPostResponse(
                 post.getId(), post.getTitle(), post.getDescription(), post.getAuthorName(),
-                post.getContact(), post.getLocation(), post.getCategory(), post.getType(),
-                post.getStatus(), post.getCreatedAt(), post.getUpdatedAt());
+                currentUserId == null ? null : post.getContact(), post.getLocation(), post.getCategory(), post.getType(),
+                post.getStatus(), ownerId, ownerId != null && ownerId.equals(currentUserId),
+                post.getCreatedAt(), post.getUpdatedAt());
     }
 }

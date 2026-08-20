@@ -4,6 +4,7 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { HttpErrorResponse } from '@angular/common/http';
 import { Category, HelpPost, HelpPostInput, PostStats, PostStatus, PostType } from './help-post.model';
 import { HelpPostService } from './help-post.service';
+import { AuthService } from './auth.service';
 
 @Component({
   selector: 'app-root',
@@ -14,6 +15,7 @@ import { HelpPostService } from './help-post.service';
 export class App {
   private readonly service = inject(HelpPostService);
   private readonly fb = inject(FormBuilder);
+  readonly auth = inject(AuthService);
 
   readonly posts = signal<HelpPost[]>([]);
   readonly stats = signal<PostStats>({ total: 0, open: 0, offers: 0, requests: 0, completed: 0 });
@@ -24,6 +26,10 @@ export class App {
   readonly modalOpen = signal(false);
   readonly selectedPost = signal<HelpPost | null>(null);
   readonly editingId = signal<number | null>(null);
+  readonly authModalOpen = signal(false);
+  readonly authMode = signal<'login' | 'register'>('login');
+  readonly authenticating = signal(false);
+  readonly authError = signal('');
   readonly search = signal('');
   readonly category = signal<Category | ''>('');
   readonly type = signal<PostType | ''>('');
@@ -42,11 +48,20 @@ export class App {
   readonly postForm = this.fb.nonNullable.group({
     title: ['', [Validators.required, Validators.maxLength(90)]],
     description: ['', [Validators.required, Validators.minLength(20), Validators.maxLength(800)]],
-    authorName: ['', [Validators.required, Validators.maxLength(60)]],
-    contact: ['', [Validators.required, Validators.email, Validators.maxLength(120)]],
     location: ['', [Validators.required, Validators.maxLength(80)]],
     category: ['EDUCATION' as Category, Validators.required],
     type: ['REQUEST' as PostType, Validators.required],
+  });
+
+  readonly loginForm = this.fb.nonNullable.group({
+    email: ['', [Validators.required, Validators.email]],
+    password: ['', Validators.required],
+  });
+
+  readonly registerForm = this.fb.nonNullable.group({
+    name: ['', [Validators.required, Validators.maxLength(60)]],
+    email: ['', [Validators.required, Validators.email, Validators.maxLength(120)]],
+    password: ['', [Validators.required, Validators.minLength(8), Validators.maxLength(72)]],
   });
 
   constructor() {
@@ -90,17 +105,26 @@ export class App {
   }
 
   openCreate(type: PostType = 'REQUEST'): void {
+    if (!this.auth.authenticated()) {
+      this.openAuth('register');
+      this.showToast('Create an account or sign in to publish');
+      return;
+    }
     this.editingId.set(null);
-    this.postForm.reset({ title: '', description: '', authorName: '', contact: '', location: '', category: 'EDUCATION', type });
+    this.postForm.reset({ title: '', description: '', location: '', category: 'EDUCATION', type });
     this.modalOpen.set(true);
   }
 
   openEdit(post: HelpPost): void {
+    if (!post.ownedByCurrentUser) {
+      this.showToast('Only the post owner can edit it');
+      return;
+    }
     this.selectedPost.set(null);
     this.editingId.set(post.id);
     this.postForm.setValue({
-      title: post.title, description: post.description, authorName: post.authorName,
-      contact: post.contact, location: post.location, category: post.category, type: post.type,
+      title: post.title, description: post.description,
+      location: post.location, category: post.category, type: post.type,
     });
     this.modalOpen.set(true);
   }
@@ -133,6 +157,10 @@ export class App {
   view(post: HelpPost): void { this.selectedPost.set(post); }
 
   advanceStatus(post: HelpPost): void {
+    if (!post.ownedByCurrentUser) {
+      this.showToast('Only the post owner can update its status');
+      return;
+    }
     const next: PostStatus = post.status === 'OPEN' ? 'IN_PROGRESS' : 'COMPLETED';
     this.service.updateStatus(post.id, next).subscribe({
       next: updated => {
@@ -145,6 +173,10 @@ export class App {
   }
 
   remove(post: HelpPost): void {
+    if (!post.ownedByCurrentUser) {
+      this.showToast('Only the post owner can delete it');
+      return;
+    }
     if (!confirm(`Delete “${post.title}”?`)) return;
     this.service.delete(post.id).subscribe({
       next: () => { this.selectedPost.set(null); this.showToast('Post deleted'); this.refresh(); },
@@ -158,6 +190,54 @@ export class App {
 
   categoryIcon(value: Category): string {
     return this.categories.find(category => category.value === value)?.icon ?? '•';
+  }
+
+  openAuth(mode: 'login' | 'register' = 'login'): void {
+    this.authMode.set(mode);
+    this.authError.set('');
+    this.authModalOpen.set(true);
+  }
+
+  closeAuth(): void {
+    if (!this.authenticating()) this.authModalOpen.set(false);
+  }
+
+  switchAuthMode(mode: 'login' | 'register'): void {
+    this.authMode.set(mode);
+    this.authError.set('');
+  }
+
+  submitAuth(): void {
+    const isLogin = this.authMode() === 'login';
+    const form = isLogin ? this.loginForm : this.registerForm;
+    if (form.invalid) {
+      form.markAllAsTouched();
+      return;
+    }
+    this.authenticating.set(true);
+    this.authError.set('');
+    const request = isLogin
+      ? this.auth.login(this.loginForm.getRawValue())
+      : this.auth.register(this.registerForm.getRawValue());
+    request.subscribe({
+      next: response => {
+        this.authenticating.set(false);
+        this.authModalOpen.set(false);
+        this.showToast(`Welcome${isLogin ? ' back' : ''}, ${response.user.name.split(' ')[0]}`);
+        this.refresh();
+      },
+      error: (response: HttpErrorResponse) => {
+        this.authenticating.set(false);
+        this.authError.set(response.error?.message ?? 'Authentication failed. Please try again.');
+      },
+    });
+  }
+
+  logout(): void {
+    this.auth.logout();
+    this.selectedPost.set(null);
+    this.showToast('You are signed out');
+    this.refresh();
   }
 
   private showToast(message: string): void {

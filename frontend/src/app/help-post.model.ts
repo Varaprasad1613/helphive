@@ -7,11 +7,13 @@ export interface HelpPost {
   title: string;
   description: string;
   authorName: string;
-  contact: string;
+  contact: string | null;
   location: string;
   category: Category;
   type: PostType;
   status: PostStatus;
+  ownerId: number | null;
+  ownedByCurrentUser: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -19,8 +21,6 @@ export interface HelpPost {
 export interface HelpPostInput {
   title: string;
   description: string;
-  authorName: string;
-  contact: string;
   location: string;
   category: Category;
   type: PostType;
