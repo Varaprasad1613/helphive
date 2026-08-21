@@ -12,8 +12,8 @@ export class AuthService {
   readonly user = signal<AuthUser | null>(this.readUser());
   readonly authenticated = computed(() => this.user() !== null && !!this.token());
 
-  register(input: RegisterInput): Observable<AuthResponse> {
-    return this.http.post<AuthResponse>('/api/auth/register', input).pipe(tap(response => this.save(response)));
+  register(input: RegisterInput): Observable<AuthUser> {
+    return this.http.post<AuthUser>('/api/auth/register', input);
   }
 
   login(input: LoginInput): Observable<AuthResponse> {

@@ -30,6 +30,7 @@ export class App {
   readonly authMode = signal<'login' | 'register'>('login');
   readonly authenticating = signal(false);
   readonly authError = signal('');
+  readonly authNotice = signal('');
   readonly search = signal('');
   readonly category = signal<Category | ''>('');
   readonly type = signal<PostType | ''>('');
@@ -65,16 +66,30 @@ export class App {
   });
 
   constructor() {
-    this.refresh();
+    if (this.auth.authenticated()) this.refresh();
+    else this.loading.set(false);
   }
 
   refresh(): void {
+    if (!this.auth.authenticated()) {
+      this.posts.set([]);
+      this.stats.set({ total: 0, open: 0, offers: 0, requests: 0, completed: 0 });
+      this.loading.set(false);
+      return;
+    }
     this.loading.set(true);
     this.error.set('');
     this.service.list({ search: this.search(), category: this.category(), type: this.type(), status: this.status() })
       .subscribe({
         next: posts => { this.posts.set(posts); this.loading.set(false); },
-        error: () => { this.error.set('The community board is taking a little longer to wake up. Please try again.'); this.loading.set(false); },
+        error: (response: HttpErrorResponse) => {
+          if (response.status === 401) {
+            this.restrictAccess('Your session expired. Sign in again to continue.');
+            return;
+          }
+          this.error.set('The community board is taking a little longer to wake up. Please try again.');
+          this.loading.set(false);
+        },
       });
     this.service.stats().subscribe({ next: stats => this.stats.set(stats) });
   }
@@ -195,16 +210,18 @@ export class App {
   openAuth(mode: 'login' | 'register' = 'login'): void {
     this.authMode.set(mode);
     this.authError.set('');
+    this.authNotice.set('');
     this.authModalOpen.set(true);
   }
 
   closeAuth(): void {
-    if (!this.authenticating()) this.authModalOpen.set(false);
+    if (this.auth.authenticated() && !this.authenticating()) this.authModalOpen.set(false);
   }
 
   switchAuthMode(mode: 'login' | 'register'): void {
     this.authMode.set(mode);
     this.authError.set('');
+    this.authNotice.set('');
   }
 
   submitAuth(): void {
@@ -216,19 +233,36 @@ export class App {
     }
     this.authenticating.set(true);
     this.authError.set('');
-    const request = isLogin
-      ? this.auth.login(this.loginForm.getRawValue())
-      : this.auth.register(this.registerForm.getRawValue());
-    request.subscribe({
-      next: response => {
+    this.authNotice.set('');
+    if (isLogin) {
+      this.auth.login(this.loginForm.getRawValue()).subscribe({
+        next: response => {
+          this.authenticating.set(false);
+          this.authModalOpen.set(false);
+          this.showToast(`Welcome back, ${response.user.name.split(' ')[0]}`);
+          this.refresh();
+        },
+        error: (response: HttpErrorResponse) => {
+          this.authenticating.set(false);
+          this.authError.set(response.error?.message ?? 'Sign in failed. Please try again.');
+        },
+      });
+      return;
+    }
+
+    const email = this.registerForm.controls.email.value;
+    this.auth.register(this.registerForm.getRawValue()).subscribe({
+      next: user => {
         this.authenticating.set(false);
-        this.authModalOpen.set(false);
-        this.showToast(`Welcome${isLogin ? ' back' : ''}, ${response.user.name.split(' ')[0]}`);
-        this.refresh();
+        this.authMode.set('login');
+        this.loginForm.reset({ email: user.email, password: '' });
+        this.registerForm.reset({ name: '', email: '', password: '' });
+        this.authNotice.set('Account created successfully. Sign in with your new password to enter HelpHive.');
       },
       error: (response: HttpErrorResponse) => {
         this.authenticating.set(false);
-        this.authError.set(response.error?.message ?? 'Authentication failed. Please try again.');
+        this.authError.set(response.error?.message ?? 'Could not create the account. Please try again.');
+        this.registerForm.controls.email.setValue(email);
       },
     });
   }
@@ -236,8 +270,23 @@ export class App {
   logout(): void {
     this.auth.logout();
     this.selectedPost.set(null);
-    this.showToast('You are signed out');
-    this.refresh();
+    this.modalOpen.set(false);
+    this.posts.set([]);
+    this.stats.set({ total: 0, open: 0, offers: 0, requests: 0, completed: 0 });
+    this.loading.set(false);
+    this.authMode.set('login');
+    this.authModalOpen.set(true);
+    this.authNotice.set('You are signed out. Sign in to access the community.');
+  }
+
+  private restrictAccess(message: string): void {
+    this.auth.logout();
+    this.posts.set([]);
+    this.stats.set({ total: 0, open: 0, offers: 0, requests: 0, completed: 0 });
+    this.loading.set(false);
+    this.authMode.set('login');
+    this.authModalOpen.set(true);
+    this.authNotice.set(message);
   }
 
   private showToast(message: string): void {

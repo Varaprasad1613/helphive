@@ -10,7 +10,7 @@
 
 ## What is HelpHive?
 
-HelpHive makes it easy for neighbors to request a hand or offer their time and skills. People can browse a live community board, search by keyword or location, filter by category and status, contact one another, and follow a post from open to completed.
+HelpHive makes it easy for registered neighbors to request a hand or offer their time and skills. Members can browse a private community board, search by keyword or location, filter by category and status, contact one another, and follow a post from open to completed.
 
 This is a complete full-stack project rather than a portfolio or static demo. The Angular client talks to a tested Spring Boot REST API, data is persisted with JPA, and the whole application deploys as one Docker service.
 
@@ -20,6 +20,7 @@ This is a complete full-stack project rather than a portfolio or static demo. Th
 
 - Create, read, edit, and delete community posts
 - Register and sign in with a secure BCrypt-hashed account
+- Members-only access to the community board and all post data
 - JWT authentication with browser-session persistence
 - Post ownership: only the creator can edit, delete, or change status
 - Contact details visible only to signed-in community members
@@ -119,17 +120,17 @@ Base path: `/api/posts`
 | `PATCH` | `/api/posts/{id}/status` | Change post status |
 | `DELETE` | `/api/posts/{id}` | Delete a post |
 
-Public visitors can use `GET` endpoints. Creating or changing a post requires `Authorization: Bearer <token>`, and update/delete/status operations require ownership.
+Every post endpoint requires `Authorization: Bearer <token>`. Update/delete/status operations additionally require ownership. Anonymous visitors can access only registration, login, the static sign-in screen, and the hosting health check.
 
 ### Authentication
 
 | Method | Endpoint | Purpose |
 | --- | --- | --- |
-| `POST` | `/api/auth/register` | Create an account and receive a JWT |
+| `POST` | `/api/auth/register` | Create an account |
 | `POST` | `/api/auth/login` | Sign in and receive a JWT |
 | `GET` | `/api/auth/me` | Read the authenticated user |
 
-Passwords are never stored directly; Spring Security hashes them with BCrypt. JWTs expire after two hours by default and the Angular client keeps the token in `sessionStorage`, so closing the browser session signs the user out.
+Registration does not grant immediate community access: after creating an account, the user signs in to receive a JWT. Passwords are never stored directly; Spring Security hashes them with BCrypt. JWTs expire after two hours by default and the Angular client keeps the token in `sessionStorage`, so closing the browser session signs the user out.
 
 List filters are optional query parameters: `search`, `category`, `type`, and `status`.
 

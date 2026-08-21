@@ -1,7 +1,7 @@
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
-import { AuthResponse } from './auth.model';
+import { AuthUser } from './auth.model';
 import { AuthService } from './auth.service';
 
 describe('AuthService', () => {
@@ -19,11 +19,8 @@ describe('AuthService', () => {
 
   afterEach(() => http.verify());
 
-  it('registers and stores the session', () => {
-    const response: AuthResponse = {
-      token: 'signed-token',
-      user: { id: 1, name: 'Alex Kim', email: 'alex@example.com', role: 'MEMBER' },
-    };
+  it('registers without signing the user in', () => {
+    const response: AuthUser = { id: 1, name: 'Alex Kim', email: 'alex@example.com', role: 'MEMBER' };
 
     service.register({ name: 'Alex Kim', email: 'alex@example.com', password: 'strong-pass-123' })
       .subscribe(result => expect(result).toEqual(response));
@@ -32,9 +29,9 @@ describe('AuthService', () => {
     expect(request.request.method).toBe('POST');
     request.flush(response);
 
-    expect(service.user()).toEqual(response.user);
-    expect(service.authenticated()).toBe(true);
-    expect(sessionStorage.getItem('helphive_token')).toBe('signed-token');
+    expect(service.user()).toBeNull();
+    expect(service.authenticated()).toBe(false);
+    expect(sessionStorage.getItem('helphive_token')).toBeNull();
   });
 
   it('clears the session on logout', () => {

@@ -22,7 +22,7 @@ public class AuthService {
     }
 
     @Transactional
-    public AuthResponse register(RegisterRequest request) {
+    public UserResponse register(RegisterRequest request) {
         String email = normalizeEmail(request.email());
         if (repository.existsByEmailIgnoreCase(email)) {
             throw new ConflictException("An account already exists for this email");
@@ -31,8 +31,7 @@ public class AuthService {
         user.setName(request.name().strip());
         user.setEmail(email);
         user.setPasswordHash(passwordEncoder.encode(request.password()));
-        AppUser saved = repository.save(user);
-        return response(saved);
+        return UserResponse.from(repository.save(user));
     }
 
     @Transactional(readOnly = true)

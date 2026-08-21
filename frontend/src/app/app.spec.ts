@@ -22,4 +22,12 @@ describe('App', () => {
     fixture.detectChanges();
     expect(fixture.nativeElement.textContent).toContain('HelpHive');
   });
+
+  it('shows only the account gate to an anonymous visitor', () => {
+    const fixture = TestBed.createComponent(App);
+    fixture.detectChanges();
+    const text = fixture.nativeElement.textContent;
+    expect(text).toContain('Sign in to enter the private community');
+    expect(text).not.toContain('Community board');
+  });
 });

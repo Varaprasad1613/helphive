@@ -1,3 +1,4 @@
+@if (auth.authenticated()) {
 <header class="site-header">
   <a class="brand" href="#top" aria-label="HelpHive home">
     <span class="brand-mark">H</span>
@@ -11,8 +12,6 @@
     @if (auth.user(); as user) {
       <span class="account-chip"><span>{{ user.name.charAt(0) }}</span>{{ user.name }}</span>
       <button class="text-button" (click)="logout()">Sign out</button>
-    } @else {
-      <button class="text-button" (click)="openAuth('login')">Sign in</button>
     }
     <button class="button button-dark button-small" (click)="openCreate()">Post a request <span>＋</span></button>
   </div>
@@ -180,18 +179,20 @@
     </section>
   </div>
 }
+}
 
-@if (authModalOpen()) {
-  <div class="modal-backdrop" (mousedown)="closeAuth()">
+@if (!auth.authenticated() || authModalOpen()) {
+  <div class="modal-backdrop auth-gate">
     <section class="modal auth-modal" role="dialog" aria-modal="true" aria-labelledby="auth-title" (mousedown)="$event.stopPropagation()">
-      <button class="close-button" aria-label="Close" (click)="closeAuth()">×</button>
+      @if (auth.authenticated()) { <button class="close-button" aria-label="Close" (click)="closeAuth()">×</button> }
       <div class="eyebrow"><span></span> Your HelpHive account</div>
       <h2 id="auth-title">{{ authMode() === 'login' ? 'Welcome back' : 'Join the community' }}</h2>
-      <p class="auth-intro">{{ authMode() === 'login' ? 'Sign in to manage your posts.' : 'Create an account to publish and own your posts.' }}</p>
+      <p class="auth-intro">{{ authMode() === 'login' ? 'Sign in to enter the private community.' : 'Create your account first, then sign in to access HelpHive.' }}</p>
       <div class="auth-tabs" role="tablist">
         <button type="button" [class.active]="authMode() === 'login'" (click)="switchAuthMode('login')">Sign in</button>
         <button type="button" [class.active]="authMode() === 'register'" (click)="switchAuthMode('register')">Create account</button>
       </div>
+      @if (authNotice()) { <p class="auth-notice">{{ authNotice() }}</p> }
       @if (authMode() === 'login') {
         <form [formGroup]="loginForm" (ngSubmit)="submitAuth()">
           <label>Email<input type="email" formControlName="email" autocomplete="email" placeholder="you@example.com"></label>

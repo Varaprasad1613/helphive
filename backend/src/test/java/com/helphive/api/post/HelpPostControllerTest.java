@@ -24,7 +24,7 @@ class HelpPostControllerTest {
 
     @Test
     void createsFiltersUpdatesAndDeletesPost() throws Exception {
-        String token = register("Alex Kim", "alex-create@example.com");
+        String token = registerAndLogin("Alex Kim", "alex-create@example.com");
         String body = """
                 {"title":"Help setting up a phone","description":"Need patient help transferring photos to a new phone this weekend.","location":"West End","category":"TECHNOLOGY","type":"REQUEST"}
                 """;
@@ -38,7 +38,8 @@ class HelpPostControllerTest {
                 .andReturn().getResponse().getContentAsString();
         long id = Long.parseLong(response.replaceAll(".*\\\"id\\\":(\\d+).*", "$1"));
 
-        mockMvc.perform(get("/api/posts").param("category", "TECHNOLOGY").param("search", "phone"))
+        mockMvc.perform(get("/api/posts").header("Authorization", "Bearer " + token)
+                        .param("category", "TECHNOLOGY").param("search", "phone"))
                 .andExpect(status().isOk()).andExpect(jsonPath("$", hasSize(1)));
         mockMvc.perform(patch("/api/posts/{id}/status", id).header("Authorization", "Bearer " + token)
                         .contentType(MediaType.APPLICATION_JSON)
@@ -46,12 +47,13 @@ class HelpPostControllerTest {
                 .andExpect(status().isOk()).andExpect(jsonPath("$.status").value("COMPLETED"));
         mockMvc.perform(delete("/api/posts/{id}", id).header("Authorization", "Bearer " + token))
                 .andExpect(status().isNoContent());
-        mockMvc.perform(get("/api/posts/{id}", id)).andExpect(status().isNotFound());
+        mockMvc.perform(get("/api/posts/{id}", id).header("Authorization", "Bearer " + token))
+                .andExpect(status().isNotFound());
     }
 
     @Test
     void rejectsInvalidPosts() throws Exception {
-        String token = register("Alex Kim", "alex-invalid@example.com");
+        String token = registerAndLogin("Alex Kim", "alex-invalid@example.com");
         mockMvc.perform(post("/api/posts").header("Authorization", "Bearer " + token)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"title\":\"\",\"description\":\"too short\"}"))
@@ -62,14 +64,16 @@ class HelpPostControllerTest {
 
     @Test
     void requiresAuthenticationAndEnforcesOwnership() throws Exception {
-        String ownerToken = register("Owner", "owner@example.com");
-        String otherToken = register("Other Member", "other@example.com");
+        String ownerToken = registerAndLogin("Owner", "owner@example.com");
+        String otherToken = registerAndLogin("Other Member", "other@example.com");
         String body = """
                 {"title":"Community garden planning","description":"Looking for neighbors to plan the spring garden beds together.","location":"North Hills","category":"HOME_AND_GARDEN","type":"REQUEST"}
                 """;
 
         mockMvc.perform(post("/api/posts").contentType(MediaType.APPLICATION_JSON).content(body))
                 .andExpect(status().isUnauthorized());
+        mockMvc.perform(get("/api/posts")).andExpect(status().isUnauthorized());
+        mockMvc.perform(get("/api/posts/stats")).andExpect(status().isUnauthorized());
 
         String response = mockMvc.perform(post("/api/posts").header("Authorization", "Bearer " + ownerToken)
                         .contentType(MediaType.APPLICATION_JSON).content(body))
@@ -86,7 +90,11 @@ class HelpPostControllerTest {
 
     @Test
     void registersLogsInAndRejectsDuplicateAccount() throws Exception {
-        register("Alex Kim", "alex-login@example.com");
+        mockMvc.perform(post("/api/auth/register").contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"name\":\"Alex Kim\",\"email\":\"alex-login@example.com\",\"password\":\"strong-pass-123\"}"))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.email").value("alex-login@example.com"))
+                .andExpect(jsonPath("$.token").doesNotExist());
         mockMvc.perform(post("/api/auth/login").contentType(MediaType.APPLICATION_JSON)
                         .content("{\"email\":\"ALEX-LOGIN@example.com\",\"password\":\"strong-pass-123\"}"))
                 .andExpect(status().isOk())
@@ -97,11 +105,15 @@ class HelpPostControllerTest {
                 .andExpect(status().isConflict());
     }
 
-    private String register(String name, String email) throws Exception {
-        String response = mockMvc.perform(post("/api/auth/register").contentType(MediaType.APPLICATION_JSON)
+    private String registerAndLogin(String name, String email) throws Exception {
+        mockMvc.perform(post("/api/auth/register").contentType(MediaType.APPLICATION_JSON)
                         .content("{\"name\":\"" + name + "\",\"email\":\"" + email
                                 + "\",\"password\":\"strong-pass-123\"}"))
                 .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.email").value(email));
+        String response = mockMvc.perform(post("/api/auth/login").contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"email\":\"" + email + "\",\"password\":\"strong-pass-123\"}"))
+                .andExpect(status().isOk())
                 .andExpect(jsonPath("$.token").isNotEmpty())
                 .andReturn().getResponse().getContentAsString();
         return response.replaceAll(".*\\\"token\\\":\\\"([^\\\"]+)\\\".*", "$1");
