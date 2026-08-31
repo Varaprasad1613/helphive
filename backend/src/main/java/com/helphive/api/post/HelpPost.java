@@ -1,6 +1,8 @@
 package com.helphive.api.post;
 
 import com.helphive.api.user.AppUser;
+import com.helphive.api.response.HelpResponse;
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -14,6 +16,9 @@ import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
+import jakarta.persistence.OneToMany;
 
 @Entity
 @Table(name = "help_posts")
@@ -52,6 +57,9 @@ public class HelpPost {
     @ManyToOne(fetch = jakarta.persistence.FetchType.LAZY)
     @JoinColumn(name = "owner_id")
     private AppUser owner;
+
+    @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<HelpResponse> responses = new ArrayList<>();
 
     @Column(nullable = false, updatable = false)
     private Instant createdAt;

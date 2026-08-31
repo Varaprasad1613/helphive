@@ -139,4 +139,32 @@ class HelpPostControllerTest {
                         .content("{\"email\":\"updated-profile@example.com\",\"password\":\"new-strong-pass-456\"}"))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.token").isNotEmpty());
     }
+
+    @Test
+    void sendsReceivesAndAcceptsHelpResponse() throws Exception {
+        String ownerToken = registerAndLogin("Response Owner", "response-owner@example.com");
+        String helperToken = registerAndLogin("Helpful Member", "response-helper@example.com");
+        String postResponse = mockMvc.perform(post("/api/posts").header("Authorization", "Bearer " + ownerToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"title\":\"Need help moving a desk\",\"description\":\"Looking for one neighbor to help move a desk downstairs safely.\",\"location\":\"Oak Street\",\"category\":\"HOME_AND_GARDEN\",\"type\":\"REQUEST\"}"))
+                .andExpect(status().isCreated()).andReturn().getResponse().getContentAsString();
+        long postId = Long.parseLong(postResponse.replaceAll(".*\\\"id\\\":(\\d+).*", "$1"));
+        String responseBody = mockMvc.perform(post("/api/posts/{postId}/responses", postId)
+                        .header("Authorization", "Bearer " + helperToken).contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"message\":\"I can bring moving straps and help on Saturday morning.\"}"))
+                .andExpect(status().isCreated()).andExpect(jsonPath("$.status").value("PENDING"))
+                .andReturn().getResponse().getContentAsString();
+        long responseId = Long.parseLong(responseBody.replaceAll(".*\\\"id\\\":(\\d+).*", "$1"));
+        mockMvc.perform(get("/api/responses/received").header("Authorization", "Bearer " + ownerToken))
+                .andExpect(status().isOk()).andExpect(jsonPath("$", hasSize(1)))
+                .andExpect(jsonPath("$[0].responderName").value("Helpful Member"));
+        mockMvc.perform(patch("/api/responses/{id}/status", responseId)
+                        .header("Authorization", "Bearer " + ownerToken).contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"status\":\"ACCEPTED\"}"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.status").value("ACCEPTED"));
+        mockMvc.perform(get("/api/responses/mine").header("Authorization", "Bearer " + helperToken))
+                .andExpect(status().isOk()).andExpect(jsonPath("$[0].status").value("ACCEPTED"));
+        mockMvc.perform(get("/api/posts/{id}", postId).header("Authorization", "Bearer " + ownerToken))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.status").value("IN_PROGRESS"));
+    }
 }

@@ -1,0 +1,22 @@
+<section class="page">
+  <header><div class="eyebrow">Connections</div><h1>My responses</h1><p>Manage the messages you sent and the people who responded to your posts.</p></header>
+  <div class="tabs"><button [class.active]="tab() === 'received'" (click)="tab.set('received')">Received <span>{{ received().length }}</span></button><button [class.active]="tab() === 'sent'" (click)="tab.set('sent')">Sent <span>{{ sent().length }}</span></button></div>
+  @if (loading()) { <div class="state">Loading responses…</div> }
+  @else if (error()) { <div class="state"><p>{{ error() }}</p><button (click)="load()">Try again</button></div> }
+  @else if (visible().length === 0) { <div class="state"><span>↗</span><h2>No {{ tab() }} responses yet</h2><p>{{ tab() === 'received' ? 'Responses to your posts will appear here.' : 'Open a community post and send a thoughtful response.' }}</p></div> }
+  @else {
+    <div class="list">
+      @for (response of visible(); track response.id) {
+        <article>
+          <div class="top"><span class="status" [class.accepted]="response.status === 'ACCEPTED'" [class.declined]="response.status === 'DECLINED'">{{ response.status }}</span><small>{{ response.createdAt | date:'medium' }}</small></div>
+          <h2>{{ response.postTitle }}</h2>
+          <p class="person">{{ tab() === 'received' ? 'From ' + response.responderName + ' · ' + response.responderEmail : 'To ' + response.postOwnerName }}</p>
+          <blockquote>{{ response.message }}</blockquote>
+          @if (tab() === 'received' && response.status === 'PENDING') { <div class="actions"><button (click)="review(response, 'ACCEPTED')">Accept</button><button class="secondary" (click)="review(response, 'DECLINED')">Decline</button></div> }
+          @if (tab() === 'sent' && response.canWithdraw) { <div class="actions"><button class="secondary" (click)="withdraw(response)">Withdraw response</button></div> }
+        </article>
+      }
+    </div>
+  }
+</section>
+@if (toast()) { <div class="toast">✓ {{ toast() }}</div> }
