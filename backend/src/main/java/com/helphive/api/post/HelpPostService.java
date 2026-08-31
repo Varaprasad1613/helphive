@@ -42,6 +42,12 @@ public class HelpPostService {
         return HelpPostResponse.from(requirePost(id), currentUser == null ? null : currentUser.id());
     }
 
+    public List<HelpPostResponse> findMine(AuthenticatedUser currentUser) {
+        return repository.findByOwnerIdOrderByCreatedAtDesc(currentUser.id()).stream()
+                .map(post -> HelpPostResponse.from(post, currentUser.id()))
+                .toList();
+    }
+
     @Transactional
     public HelpPostResponse create(HelpPostRequest request, AuthenticatedUser currentUser) {
         AppUser owner = requireUser(currentUser.id());

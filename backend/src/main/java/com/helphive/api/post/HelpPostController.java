@@ -41,6 +41,11 @@ public class HelpPostController {
         return service.findById(id, currentUser);
     }
 
+    @GetMapping("/mine")
+    public List<HelpPostResponse> findMine(@AuthenticationPrincipal AuthenticatedUser currentUser) {
+        return service.findMine(currentUser);
+    }
+
     @GetMapping("/stats")
     public PostStats stats() {
         return service.stats();

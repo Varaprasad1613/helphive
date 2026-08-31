@@ -38,6 +38,9 @@ class HelpPostControllerTest {
                 .andReturn().getResponse().getContentAsString();
         long id = Long.parseLong(response.replaceAll(".*\\\"id\\\":(\\d+).*", "$1"));
 
+        mockMvc.perform(get("/api/posts/mine").header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk()).andExpect(jsonPath("$", hasSize(1)))
+                .andExpect(jsonPath("$[0].id").value(id));
         mockMvc.perform(get("/api/posts").header("Authorization", "Bearer " + token)
                         .param("category", "TECHNOLOGY").param("search", "phone"))
                 .andExpect(status().isOk()).andExpect(jsonPath("$", hasSize(1)));

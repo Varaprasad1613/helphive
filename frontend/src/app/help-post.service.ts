@@ -20,6 +20,10 @@ export class HelpPostService {
     return this.http.get<PostStats>(`${this.baseUrl}/stats`);
   }
 
+  mine(): Observable<HelpPost[]> {
+    return this.http.get<HelpPost[]>(`${this.baseUrl}/mine`);
+  }
+
   create(input: HelpPostInput): Observable<HelpPost> {
     return this.http.post<HelpPost>(this.baseUrl, input);
   }
