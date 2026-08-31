@@ -17,7 +17,7 @@ public record HelpPostResponse(
         Instant createdAt,
         Instant updatedAt
 ) {
-    static HelpPostResponse from(HelpPost post, Long currentUserId) {
+    public static HelpPostResponse from(HelpPost post, Long currentUserId) {
         Long ownerId = post.getOwner() == null ? null : post.getOwner().getId();
         return new HelpPostResponse(
                 post.getId(), post.getTitle(), post.getDescription(), post.getAuthorName(),

@@ -35,6 +35,9 @@ public class AppUser {
     @Column(nullable = false, columnDefinition = "boolean default true")
     private boolean emailVerified = true;
 
+    @Column(nullable = false, columnDefinition = "boolean default true")
+    private boolean active = true;
+
     @Column(nullable = false, updatable = false)
     private Instant createdAt;
 
@@ -54,5 +57,7 @@ public class AppUser {
     public void setRole(UserRole role) { this.role = role; }
     public boolean isEmailVerified() { return emailVerified; }
     public void setEmailVerified(boolean emailVerified) { this.emailVerified = emailVerified; }
+    public boolean isActive() { return active; }
+    public void setActive(boolean active) { this.active = active; }
     public Instant getCreatedAt() { return createdAt; }
 }

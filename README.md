@@ -23,6 +23,12 @@ This is a complete full-stack project rather than a portfolio or static demo. Th
 - Members-only access to the community board and all post data
 - JWT authentication with browser-session persistence
 - Post ownership: only the creator can edit, delete, or change status
+- Routed member workspace with My Account, My Posts, and My Responses pages
+- Profile editing and secure current-password-verified password changes
+- Help responses with sent/received inboxes and accept, decline, and withdraw actions
+- Optional email verification with 24-hour single-use links
+- Password recovery with 30-minute single-use reset links
+- Admin dashboard with member roles, account suspension, activity totals, and post moderation
 - Contact details visible only to signed-in community members
 - Request help or offer a skill
 - Keyword, category, type, and status filters
@@ -45,7 +51,8 @@ This is a complete full-stack project rather than a portfolio or static demo. Th
 ```mermaid
 flowchart LR
     Browser["Angular 22 client"] -->|JWT + REST /api| API["Spring Boot 4.1 + Security"]
-    API --> Users["Users + ownership"]
+    API --> Users["Users + roles + account tokens"]
+    API --> Responses["Help responses"]
     API --> JPA["Spring Data JPA"]
     JPA --> Local["H2 · local"]
     JPA --> Hosted["Neon PostgreSQL · hosted"]
@@ -58,7 +65,7 @@ The production Docker image builds Angular first, copies the static bundle into 
 | Layer | Technology |
 | --- | --- |
 | Frontend | Angular 22, TypeScript 6, RxJS, SCSS, reactive forms, signals |
-| Backend | Java 21, Spring Boot 4.1, Spring Security, Spring Web MVC, Bean Validation |
+| Backend | Java 21, Spring Boot 4.1, Spring Security, Spring Mail, Spring Web MVC, Bean Validation |
 | Data | Spring Data JPA, Hibernate, H2, PostgreSQL |
 | Quality | JUnit 6, MockMvc, Vitest, GitHub Actions |
 | Delivery | Docker, Render Blueprint, Neon Postgres |
@@ -114,6 +121,7 @@ Base path: `/api/posts`
 | --- | --- | --- |
 | `GET` | `/api/posts` | List and filter posts |
 | `GET` | `/api/posts/{id}` | Get one post |
+| `GET` | `/api/posts/mine` | Get the current member's posts |
 | `GET` | `/api/posts/stats` | Get community statistics |
 | `POST` | `/api/posts` | Create a post |
 | `PUT` | `/api/posts/{id}` | Replace post details |
@@ -129,8 +137,28 @@ Every post endpoint requires `Authorization: Bearer <token>`. Update/delete/stat
 | `POST` | `/api/auth/register` | Create an account |
 | `POST` | `/api/auth/login` | Sign in and receive a JWT |
 | `GET` | `/api/auth/me` | Read the authenticated user |
+| `POST` | `/api/auth/verify-email` | Verify an email token |
+| `POST` | `/api/auth/resend-verification` | Request another verification email |
+| `POST` | `/api/auth/forgot-password` | Request a password-reset email |
+| `POST` | `/api/auth/reset-password` | Set a password with a reset token |
+
+### Member and response endpoints
+
+| Method | Endpoint | Purpose |
+| --- | --- | --- |
+| `GET` / `PUT` | `/api/users/me` | Read or update the current profile |
+| `PATCH` | `/api/users/me/password` | Change password after checking the current password |
+| `POST` | `/api/posts/{id}/responses` | Respond to another member's post |
+| `GET` | `/api/responses/mine` | List sent responses |
+| `GET` | `/api/responses/received` | List responses received on owned posts |
+| `PATCH` | `/api/responses/{id}/status` | Accept or decline a received response |
+| `DELETE` | `/api/responses/{id}` | Withdraw a pending sent response |
+
+Admin endpoints live under `/api/admin/**` and require the `ADMIN` role.
 
 Registration does not grant immediate community access: after creating an account, the user signs in to receive a JWT. Passwords are never stored directly; Spring Security hashes them with BCrypt. JWTs expire after two hours by default and the Angular client keeps the token in `sessionStorage`, so closing the browser session signs the user out.
+
+When email delivery is enabled, new accounts must verify their email before signing in. Existing accounts remain verified during the database upgrade.
 
 List filters are optional query parameters: `search`, `category`, `type`, and `status`.
 
@@ -181,6 +209,25 @@ jdbc:postgresql://YOUR_NEON_HOST/YOUR_DATABASE?sslmode=require
 
 5. Apply the Blueprint and wait for the first Docker build.
 
+`ADMIN_EMAILS` is set in `render.yaml` to the project owner's email. Any listed address is promoted to admin the next time that account signs in. Use a comma-separated list to add more trusted administrators.
+
+### Optional email delivery
+
+The deployed app keeps `MAIL_ENABLED=false` initially so current registration continues working before an SMTP provider is connected. To require email verification and send reset links, add these Render environment variables and redeploy:
+
+| Variable | Example |
+| --- | --- |
+| `MAIL_ENABLED` | `true` |
+| `MAIL_FROM` | `no-reply@your-domain.com` |
+| `SPRING_MAIL_HOST` | SMTP host supplied by your mail provider |
+| `SPRING_MAIL_PORT` | `587` |
+| `SPRING_MAIL_USERNAME` | SMTP username |
+| `SPRING_MAIL_PASSWORD` | SMTP password/secret |
+| `SPRING_MAIL_PROPERTIES_MAIL_SMTP_AUTH` | `true` |
+| `SPRING_MAIL_PROPERTIES_MAIL_SMTP_STARTTLS_ENABLE` | `true` |
+
+`PUBLIC_URL` is already set to the live HelpHive URL and is used to create verification and reset links. Never commit SMTP credentials.
+
 Render automatically generates a private `JWT_SECRET` from `render.yaml`. For any non-Render production deployment, set `JWT_SECRET` to a cryptographically random value of at least 32 characters. You can optionally set `JWT_EXPIRATION` as an ISO-8601 duration such as `PT2H`.
 
 Render gives the app a free `https://...onrender.com` URL and automatically redeploys after pushes to `main`. Free Render services sleep after inactivity, so the first request after a quiet period can take about a minute. The database remains external in Neon, so data is not lost when the service sleeps or redeploys.
@@ -206,8 +253,8 @@ helphive/
 
 ## Ideas for the next version
 
-- Email verification, password reset, and refresh-token rotation
-- Admin moderation and reporting workflows
+- Refresh-token rotation using secure HttpOnly cookies
+- Member reporting workflows and admin audit history
 - Image uploads with object storage
 - Map-based distance filtering
 - Email notifications
