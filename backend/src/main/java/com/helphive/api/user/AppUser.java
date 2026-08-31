@@ -32,6 +32,9 @@ public class AppUser {
     @Column(nullable = false, length = 20)
     private UserRole role = UserRole.MEMBER;
 
+    @Column(nullable = false, columnDefinition = "boolean default true")
+    private boolean emailVerified = true;
+
     @Column(nullable = false, updatable = false)
     private Instant createdAt;
 
@@ -49,5 +52,7 @@ public class AppUser {
     public void setPasswordHash(String passwordHash) { this.passwordHash = passwordHash; }
     public UserRole getRole() { return role; }
     public void setRole(UserRole role) { this.role = role; }
+    public boolean isEmailVerified() { return emailVerified; }
+    public void setEmailVerified(boolean emailVerified) { this.emailVerified = emailVerified; }
     public Instant getCreatedAt() { return createdAt; }
 }

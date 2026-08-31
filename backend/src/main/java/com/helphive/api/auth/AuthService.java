@@ -14,11 +14,14 @@ public class AuthService {
     private final AppUserRepository repository;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
+    private final AccountRecoveryService recoveryService;
 
-    public AuthService(AppUserRepository repository, PasswordEncoder passwordEncoder, JwtService jwtService) {
+    public AuthService(AppUserRepository repository, PasswordEncoder passwordEncoder, JwtService jwtService,
+                       AccountRecoveryService recoveryService) {
         this.repository = repository;
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
+        this.recoveryService = recoveryService;
     }
 
     @Transactional
@@ -31,7 +34,10 @@ public class AuthService {
         user.setName(request.name().strip());
         user.setEmail(email);
         user.setPasswordHash(passwordEncoder.encode(request.password()));
-        return UserResponse.from(repository.save(user));
+        user.setEmailVerified(!recoveryService.verificationRequired());
+        AppUser saved = repository.save(user);
+        recoveryService.sendVerification(saved);
+        return UserResponse.from(saved);
     }
 
     @Transactional(readOnly = true)
@@ -40,6 +46,9 @@ public class AuthService {
                 .orElseThrow(() -> new BadCredentialsException("Invalid email or password"));
         if (!passwordEncoder.matches(request.password(), user.getPasswordHash())) {
             throw new BadCredentialsException("Invalid email or password");
+        }
+        if (!user.isEmailVerified()) {
+            throw new org.springframework.security.access.AccessDeniedException("Verify your email before signing in");
         }
         return response(user);
     }

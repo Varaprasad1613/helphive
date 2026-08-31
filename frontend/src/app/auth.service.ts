@@ -1,7 +1,7 @@
 import { HttpClient } from '@angular/common/http';
 import { computed, inject, Injectable, signal } from '@angular/core';
 import { Observable, tap } from 'rxjs';
-import { AuthResponse, AuthUser, LoginInput, PasswordChangeInput, ProfileInput, RegisterInput } from './auth.model';
+import { AuthResponse, AuthUser, LoginInput, MessageResponse, PasswordChangeInput, ProfileInput, RegisterInput } from './auth.model';
 
 const TOKEN_KEY = 'helphive_token';
 const USER_KEY = 'helphive_user';
@@ -30,6 +30,22 @@ export class AuthService {
 
   changePassword(input: PasswordChangeInput): Observable<void> {
     return this.http.patch<void>('/api/users/me/password', input);
+  }
+
+  verifyEmail(token: string): Observable<MessageResponse> {
+    return this.http.post<MessageResponse>('/api/auth/verify-email', { token });
+  }
+
+  resendVerification(email: string): Observable<MessageResponse> {
+    return this.http.post<MessageResponse>('/api/auth/resend-verification', { email });
+  }
+
+  forgotPassword(email: string): Observable<MessageResponse> {
+    return this.http.post<MessageResponse>('/api/auth/forgot-password', { email });
+  }
+
+  resetPassword(token: string, password: string): Observable<MessageResponse> {
+    return this.http.post<MessageResponse>('/api/auth/reset-password', { token, password });
   }
 
   logout(): void {

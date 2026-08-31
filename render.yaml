@@ -15,5 +15,9 @@ services:
         sync: false
       - key: JWT_SECRET
         generateValue: true
+      - key: PUBLIC_URL
+        value: https://helphive-community.onrender.com
+      - key: MAIL_ENABLED
+        value: "false"
       - key: JAVA_TOOL_OPTIONS
         value: -XX:MaxRAMPercentage=75
