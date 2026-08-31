@@ -3,6 +3,7 @@ import { authGuard, guestGuard } from './auth.guard';
 import { AppLayout } from './layout/app-layout';
 import { AuthPage } from './pages/auth-page/auth-page';
 import { CommunityPage } from './pages/community-page/community-page';
+import { AccountPage } from './pages/account-page/account-page';
 
 export const routes: Routes = [
   { path: 'auth/login', component: AuthPage, canActivate: [guestGuard], title: 'Sign in | HelpHive' },
@@ -10,6 +11,7 @@ export const routes: Routes = [
   {
     path: '', component: AppLayout, canActivate: [authGuard], children: [
       { path: 'community', component: CommunityPage, title: 'Community | HelpHive' },
+      { path: 'account', component: AccountPage, title: 'My account | HelpHive' },
       { path: '', pathMatch: 'full', redirectTo: 'community' },
     ],
   },

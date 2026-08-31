@@ -1,0 +1,30 @@
+<section class="page">
+  <header><div class="eyebrow">Your member profile</div><h1>My account</h1><p>Keep your public name, contact email, and password up to date.</p></header>
+  <div class="account-grid">
+    <article class="profile-summary">
+      <div class="avatar">{{ auth.user()?.name?.charAt(0) }}</div>
+      <h2>{{ auth.user()?.name }}</h2><p>{{ auth.user()?.email }}</p>
+      <span>{{ auth.user()?.role }}</span>
+      @if (auth.user()?.createdAt) { <small>Member since {{ auth.user()?.createdAt?.slice(0, 10) }}</small> }
+    </article>
+    <div class="forms">
+      <form [formGroup]="profileForm" (ngSubmit)="saveProfile()">
+        <h2>Profile details</h2><p>This name and email appear on your help posts.</p>
+        <label>Display name<input formControlName="name" autocomplete="name"></label>
+        <label>Email address<input type="email" formControlName="email" autocomplete="email"></label>
+        @if (profileForm.invalid && profileForm.touched) { <p class="error">Enter a name and valid email.</p> }
+        @if (profileMessage()) { <p class="success">{{ profileMessage() }}</p> }
+        <button [disabled]="savingProfile()">{{ savingProfile() ? 'Saving…' : 'Save profile' }}</button>
+      </form>
+      <form [formGroup]="passwordForm" (ngSubmit)="savePassword()">
+        <h2>Change password</h2><p>Use at least 8 characters and do not reuse your current password.</p>
+        <label>Current password<input type="password" formControlName="currentPassword" autocomplete="current-password"></label>
+        <label>New password<input type="password" formControlName="newPassword" autocomplete="new-password"></label>
+        <label>Confirm new password<input type="password" formControlName="confirmPassword" autocomplete="new-password"></label>
+        @if (passwordMessage()) { <p class="success">{{ passwordMessage() }}</p> }
+        @if (error()) { <p class="error">{{ error() }}</p> }
+        <button [disabled]="savingPassword()">{{ savingPassword() ? 'Changing…' : 'Change password' }}</button>
+      </form>
+    </div>
+  </div>
+</section>

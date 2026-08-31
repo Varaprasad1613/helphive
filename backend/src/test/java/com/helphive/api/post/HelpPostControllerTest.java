@@ -118,4 +118,22 @@ class HelpPostControllerTest {
                 .andReturn().getResponse().getContentAsString();
         return response.replaceAll(".*\\\"token\\\":\\\"([^\\\"]+)\\\".*", "$1");
     }
+
+    @Test
+    void readsAndUpdatesProfileAndChangesPassword() throws Exception {
+        String token = registerAndLogin("Profile Member", "profile@example.com");
+        mockMvc.perform(get("/api/users/me").header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.name").value("Profile Member"));
+        mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put("/api/users/me")
+                        .header("Authorization", "Bearer " + token).contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"name\":\"Updated Member\",\"email\":\"updated-profile@example.com\"}"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.email").value("updated-profile@example.com"));
+        mockMvc.perform(patch("/api/users/me/password").header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"currentPassword\":\"strong-pass-123\",\"newPassword\":\"new-strong-pass-456\"}"))
+                .andExpect(status().isNoContent());
+        mockMvc.perform(post("/api/auth/login").contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"email\":\"updated-profile@example.com\",\"password\":\"new-strong-pass-456\"}"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.token").isNotEmpty());
+    }
 }

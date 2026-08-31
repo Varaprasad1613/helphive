@@ -3,6 +3,7 @@ export interface AuthUser {
   name: string;
   email: string;
   role: 'MEMBER' | 'ADMIN';
+  createdAt?: string | null;
 }
 
 export interface AuthResponse {
@@ -20,3 +21,6 @@ export interface LoginInput {
   email: string;
   password: string;
 }
+
+export interface ProfileInput { name: string; email: string; }
+export interface PasswordChangeInput { currentPassword: string; newPassword: string; }
