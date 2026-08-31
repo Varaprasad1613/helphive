@@ -1,0 +1,23 @@
+<section class="page">
+  <header><div class="eyebrow">Your contributions</div><h1>My posts</h1><p>Track every request and offer you have shared with the HelpHive community.</p><a routerLink="/community" [queryParams]="{ create: 'request' }">Create a new post ＋</a></header>
+  @if (loading()) { <div class="state">Loading your posts…</div> }
+  @else if (error()) { <div class="state"><p>{{ error() }}</p><button (click)="load()">Try again</button></div> }
+  @else if (posts().length === 0) { <div class="state"><span>✦</span><h2>You have not posted yet</h2><p>Share a request or offer and it will appear here.</p><a routerLink="/community" [queryParams]="{ create: 'request' }">Create your first post</a></div> }
+  @else {
+    <div class="summary"><strong>{{ posts().length }}</strong> total <span>·</span><strong>{{ posts().filter(post => post.status === 'OPEN').length }}</strong> open <span>·</span><strong>{{ posts().filter(post => post.status === 'COMPLETED').length }}</strong> completed</div>
+    <div class="post-list">
+      @for (post of posts(); track post.id) {
+        <article>
+          <div class="post-main"><div class="badges"><span [class.offer]="post.type === 'OFFER'">{{ post.type }}</span><span class="status" [class.done]="post.status === 'COMPLETED'">{{ post.status.replace('_', ' ') }}</span></div><h2>{{ post.title }}</h2><p>{{ post.description }}</p><small>⌖ {{ post.location }} · {{ post.createdAt | date:'mediumDate' }}</small></div>
+          <div class="actions">
+            @if (post.status === 'OPEN') { <button (click)="setStatus(post, 'IN_PROGRESS')">Start progress</button> }
+            @if (post.status === 'IN_PROGRESS') { <button (click)="setStatus(post, 'COMPLETED')">Mark complete</button> }
+            @if (post.status === 'COMPLETED') { <button class="secondary" (click)="setStatus(post, 'OPEN')">Reopen</button> }
+            <button class="danger" (click)="remove(post)">Delete</button>
+          </div>
+        </article>
+      }
+    </div>
+  }
+</section>
+@if (toast()) { <div class="toast">✓ {{ toast() }}</div> }

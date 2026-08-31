@@ -7,4 +7,5 @@ public interface HelpPostRepository extends JpaRepository<HelpPost, Long> {
     long countByStatus(PostStatus status);
     long countByType(PostType type);
     List<HelpPost> findByOwnerId(Long ownerId);
+    List<HelpPost> findByOwnerIdOrderByCreatedAtDesc(Long ownerId);
 }
