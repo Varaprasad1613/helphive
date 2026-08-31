@@ -1,7 +1,7 @@
 import { HttpClient } from '@angular/common/http';
 import { computed, inject, Injectable, signal } from '@angular/core';
 import { Observable, tap } from 'rxjs';
-import { AuthResponse, AuthUser, LoginInput, RegisterInput } from './auth.model';
+import { AuthResponse, AuthUser, LoginInput, PasswordChangeInput, ProfileInput, RegisterInput } from './auth.model';
 
 const TOKEN_KEY = 'helphive_token';
 const USER_KEY = 'helphive_user';
@@ -20,6 +20,18 @@ export class AuthService {
     return this.http.post<AuthResponse>('/api/auth/login', input).pipe(tap(response => this.save(response)));
   }
 
+  currentUser(): Observable<AuthUser> {
+    return this.http.get<AuthUser>('/api/users/me').pipe(tap(user => this.replaceUser(user)));
+  }
+
+  updateProfile(input: ProfileInput): Observable<AuthUser> {
+    return this.http.put<AuthUser>('/api/users/me', input).pipe(tap(user => this.replaceUser(user)));
+  }
+
+  changePassword(input: PasswordChangeInput): Observable<void> {
+    return this.http.patch<void>('/api/users/me/password', input);
+  }
+
   logout(): void {
     sessionStorage.removeItem(TOKEN_KEY);
     sessionStorage.removeItem(USER_KEY);
@@ -34,6 +46,11 @@ export class AuthService {
     sessionStorage.setItem(TOKEN_KEY, response.token);
     sessionStorage.setItem(USER_KEY, JSON.stringify(response.user));
     this.user.set(response.user);
+  }
+
+  private replaceUser(user: AuthUser): void {
+    sessionStorage.setItem(USER_KEY, JSON.stringify(user));
+    this.user.set(user);
   }
 
   private readUser(): AuthUser | null {
