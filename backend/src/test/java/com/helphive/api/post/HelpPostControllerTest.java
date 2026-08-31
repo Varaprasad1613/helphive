@@ -112,6 +112,19 @@ class HelpPostControllerTest {
                 .andExpect(jsonPath("$.message").value(org.hamcrest.Matchers.containsString("If an account exists")));
     }
 
+    @Test
+    void restrictsAdminDashboardAndPromotesConfiguredAdminEmail() throws Exception {
+        String memberToken = registerAndLogin("Regular Member", "regular-admin-test@example.com");
+        mockMvc.perform(get("/api/admin/overview").header("Authorization", "Bearer " + memberToken))
+                .andExpect(status().isForbidden());
+        String adminToken = registerAndLogin("Community Admin", "admin@example.com");
+        mockMvc.perform(get("/api/admin/overview").header("Authorization", "Bearer " + adminToken))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.users").isNumber());
+        mockMvc.perform(get("/api/admin/users").header("Authorization", "Bearer " + adminToken))
+                .andExpect(status().isOk()).andExpect(jsonPath("$", org.hamcrest.Matchers.hasItem(
+                        org.hamcrest.Matchers.hasEntry("role", "ADMIN"))));
+    }
+
     private String registerAndLogin(String name, String email) throws Exception {
         mockMvc.perform(post("/api/auth/register").contentType(MediaType.APPLICATION_JSON)
                         .content("{\"name\":\"" + name + "\",\"email\":\"" + email

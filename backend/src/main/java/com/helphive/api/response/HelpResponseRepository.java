@@ -8,4 +8,5 @@ public interface HelpResponseRepository extends JpaRepository<HelpResponse, Long
     List<HelpResponse> findByResponderIdOrderByCreatedAtDesc(Long responderId);
     List<HelpResponse> findByPostOwnerIdOrderByCreatedAtDesc(Long ownerId);
     List<HelpResponse> findByPostId(Long postId);
+    long countByStatus(ResponseStatus status);
 }

@@ -5,6 +5,7 @@ export interface AuthUser {
   role: 'MEMBER' | 'ADMIN';
   createdAt?: string | null;
   emailVerified?: boolean;
+  active?: boolean;
 }
 
 export interface AuthResponse {

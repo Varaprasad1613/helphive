@@ -5,3 +5,6 @@ spring:
     open-in-view: false
     hibernate:
       ddl-auto: create-drop
+app:
+  security:
+    admin-emails: admin@example.com

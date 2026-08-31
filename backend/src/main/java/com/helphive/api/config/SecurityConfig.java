@@ -33,6 +33,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/auth/register", "/api/auth/login", "/api/auth/verify-email",
                                 "/api/auth/resend-verification", "/api/auth/forgot-password",
                                 "/api/auth/reset-password", "/actuator/health", "/actuator/info").permitAll()
+                        .requestMatchers("/api/admin/**").hasRole("ADMIN")
                         .requestMatchers("/api/**").authenticated()
                         .anyRequest().permitAll())
                 .exceptionHandling(errors -> errors
@@ -46,7 +47,7 @@ public class SecurityConfig {
                             response.setStatus(403);
                             response.setContentType(MediaType.APPLICATION_JSON_VALUE);
                             objectMapper.writeValue(response.getOutputStream(),
-                                    new ApiError(Instant.now(), 403, "You do not have permission to change this post", Map.of()));
+                                    new ApiError(Instant.now(), 403, "You do not have permission to perform this action", Map.of()));
                         }))
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
                 .build();
