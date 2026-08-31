@@ -6,6 +6,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { Category, HelpPost, HelpPostInput, PostStats, PostStatus, PostType } from '../../help-post.model';
 import { HelpPostService } from '../../help-post.service';
 import { AuthService } from '../../auth.service';
+import { HelpResponseService } from '../../help-response.service';
 
 @Component({
   selector: 'app-community-page',
@@ -18,6 +19,7 @@ export class CommunityPage {
   private readonly fb = inject(FormBuilder);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
+  private readonly responseService = inject(HelpResponseService);
   readonly auth = inject(AuthService);
 
   readonly posts = signal<HelpPost[]>([]);
@@ -26,6 +28,8 @@ export class CommunityPage {
   readonly saving = signal(false);
   readonly error = signal('');
   readonly toast = signal('');
+  readonly responseMessage = signal('');
+  readonly responding = signal(false);
   readonly modalOpen = signal(false);
   readonly selectedPost = signal<HelpPost | null>(null);
   readonly editingId = signal<number | null>(null);
@@ -161,7 +165,17 @@ export class CommunityPage {
     });
   }
 
-  view(post: HelpPost): void { this.selectedPost.set(post); }
+  view(post: HelpPost): void { this.responseMessage.set(''); this.selectedPost.set(post); }
+
+  sendResponse(post: HelpPost): void {
+    const message = this.responseMessage().trim();
+    if (message.length < 10) { this.showToast('Add a message of at least 10 characters'); return; }
+    this.responding.set(true);
+    this.responseService.create(post.id, message).subscribe({
+      next: () => { this.responding.set(false); this.selectedPost.set(null); this.responseMessage.set(''); this.showToast('Your response was sent'); },
+      error: (response: HttpErrorResponse) => { this.responding.set(false); this.showToast(response.error?.message ?? 'Could not send your response'); },
+    });
+  }
 
   advanceStatus(post: HelpPost): void {
     if (!post.ownedByCurrentUser) {

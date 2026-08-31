@@ -156,6 +156,12 @@
         <div class="detail-actions"><button class="text-button" (click)="openEdit(post)">Edit</button><button class="text-button danger" (click)="remove(post)">Delete</button>@if (post.status !== 'COMPLETED') { <button class="button button-dark" (click)="advanceStatus(post)">{{ post.status === 'OPEN' ? 'Start progress' : 'Mark complete' }}</button> }</div>
       } @else if (post.ownerId === null) {
         <p class="owner-note muted">This is a read-only demo post.</p>
+      } @else if (post.status !== 'COMPLETED') {
+        <div class="response-box">
+          <h3>Respond to this post</h3><p>Introduce yourself and explain how you can help or connect.</p>
+          <textarea rows="3" maxlength="600" placeholder="Write a helpful message…" [value]="responseMessage()" (input)="responseMessage.set($any($event.target).value)"></textarea>
+          <button class="button button-primary" [disabled]="responding()" (click)="sendResponse(post)">{{ responding() ? 'Sending…' : 'Send response ↗' }}</button>
+        </div>
       }
     </section>
   </div>
