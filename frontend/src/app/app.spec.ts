@@ -1,6 +1,5 @@
-import { provideHttpClient } from '@angular/common/http';
-import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
+import { provideRouter } from '@angular/router';
 import { App } from './app';
 
 describe('App', () => {
@@ -8,7 +7,7 @@ describe('App', () => {
     sessionStorage.clear();
     await TestBed.configureTestingModule({
       imports: [App],
-      providers: [provideHttpClient(), provideHttpClientTesting()],
+      providers: [provideRouter([])],
     }).compileComponents();
   });
 
@@ -17,17 +16,9 @@ describe('App', () => {
     expect(fixture.componentInstance).toBeTruthy();
   });
 
-  it('renders the product name', () => {
+  it('hosts routed pages', () => {
     const fixture = TestBed.createComponent(App);
     fixture.detectChanges();
-    expect(fixture.nativeElement.textContent).toContain('HelpHive');
-  });
-
-  it('shows only the account gate to an anonymous visitor', () => {
-    const fixture = TestBed.createComponent(App);
-    fixture.detectChanges();
-    const text = fixture.nativeElement.textContent;
-    expect(text).toContain('Sign in to enter the private community');
-    expect(text).not.toContain('Community board');
+    expect(fixture.nativeElement.querySelector('router-outlet')).toBeTruthy();
   });
 });
