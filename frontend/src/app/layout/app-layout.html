@@ -1,0 +1,21 @@
+<header class="site-header">
+  <a class="brand" routerLink="/community" aria-label="HelpHive home">
+    <span class="brand-mark">H</span><span>HelpHive</span>
+  </a>
+  <nav aria-label="Main navigation">
+    <a routerLink="/community" routerLinkActive="active">Community</a>
+    <a routerLink="/my-posts" routerLinkActive="active">My posts</a>
+    <a routerLink="/my-responses" routerLinkActive="active">My responses</a>
+    <a routerLink="/account" routerLinkActive="active">My account</a>
+    @if (auth.user()?.role === 'ADMIN') { <a routerLink="/admin" routerLinkActive="active">Admin</a> }
+  </nav>
+  <div class="header-actions">
+    @if (auth.user(); as user) {
+      <a class="account-chip" routerLink="/account"><span>{{ user.name.charAt(0) }}</span>{{ user.name }}</a>
+    }
+    <button class="text-button" type="button" (click)="logout()">Sign out</button>
+    <a class="button" routerLink="/community" [queryParams]="{ create: 'request' }">Post a request ＋</a>
+  </div>
+</header>
+<main class="page-shell"><router-outlet /></main>
+<footer><a class="brand" routerLink="/community"><span class="brand-mark">H</span><span>HelpHive</span></a><p>Built for stronger communities.</p><span>Spring Boot · Angular · PostgreSQL</span></footer>
