@@ -4,6 +4,7 @@ export interface AuthUser {
   email: string;
   role: 'MEMBER' | 'ADMIN';
   createdAt?: string | null;
+  emailVerified?: boolean;
 }
 
 export interface AuthResponse {
@@ -24,3 +25,4 @@ export interface LoginInput {
 
 export interface ProfileInput { name: string; email: string; }
 export interface PasswordChangeInput { currentPassword: string; newPassword: string; }
+export interface MessageResponse { message: string; }

@@ -106,6 +106,10 @@ class HelpPostControllerTest {
         mockMvc.perform(post("/api/auth/register").contentType(MediaType.APPLICATION_JSON)
                         .content("{\"name\":\"Duplicate\",\"email\":\"alex-login@example.com\",\"password\":\"another-pass-123\"}"))
                 .andExpect(status().isConflict());
+        mockMvc.perform(post("/api/auth/forgot-password").contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"email\":\"alex-login@example.com\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.message").value(org.hamcrest.Matchers.containsString("If an account exists")));
     }
 
     private String registerAndLogin(String name, String email) throws Exception {
@@ -167,4 +171,5 @@ class HelpPostControllerTest {
         mockMvc.perform(get("/api/posts/{id}", postId).header("Authorization", "Bearer " + ownerToken))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.status").value("IN_PROGRESS"));
     }
+
 }

@@ -30,6 +30,10 @@ management:
         enabled: true
 
 app:
+  public-url: ${PUBLIC_URL:http://localhost:4200}
+  mail:
+    enabled: ${MAIL_ENABLED:false}
+    from: ${MAIL_FROM:no-reply@helphive.local}
   cors:
     allowed-origins: ${ALLOWED_ORIGINS:http://localhost:4200}
   security:

@@ -53,10 +53,22 @@ export class AuthPage {
       next: user => {
         this.busy.set(false); this.loginForm.setValue({ email: user.email, password: '' });
         this.registerForm.reset(); this.mode.set('login');
-        this.notice.set('Account created successfully. Sign in with your new password.');
+        this.notice.set(user.emailVerified === false
+          ? 'Account created. Check your email and verify it before signing in.'
+          : 'Account created successfully. Sign in with your new password.');
         void this.router.navigate(['/auth/login'], { replaceUrl: true });
       },
       error: (response: HttpErrorResponse) => { this.busy.set(false); this.error.set(response.error?.message ?? 'Could not create the account.'); },
+    });
+  }
+
+  resendVerification(): void {
+    const email = this.loginForm.controls.email.value;
+    if (!email || this.loginForm.controls.email.invalid) { this.error.set('Enter your account email first.'); return; }
+    this.busy.set(true);
+    this.auth.resendVerification(email).subscribe({
+      next: response => { this.busy.set(false); this.error.set(''); this.notice.set(response.message); },
+      error: () => { this.busy.set(false); this.error.set('Could not resend the verification email.'); },
     });
   }
 }
