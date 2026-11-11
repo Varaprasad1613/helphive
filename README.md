@@ -131,6 +131,8 @@ Base path: `/api/posts`
 
 Every post endpoint requires `Authorization: Bearer <token>`. Update/delete/status operations additionally require ownership. Anonymous visitors can access only registration, login, the static sign-in screen, and the hosting health check.
 
+The community board supports a separate optional `location` query parameter to find posts whose city or neighborhood text contains the entered value (case-insensitive). This is a text match, not a distance-radius search.
+
 ### Authentication
 
 | Method | Endpoint | Purpose |

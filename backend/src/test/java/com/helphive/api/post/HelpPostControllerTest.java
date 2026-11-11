@@ -199,7 +199,8 @@ class HelpPostControllerTest {
         }
 
         mockMvc.perform(get("/api/posts").header("Authorization", "Bearer " + token)
-                        .param("search", "pagination suite").param("category", "OTHER")
+                        .param("search", "pagination suite").param("location", "WEST")
+                        .param("category", "OTHER")
                         .param("page", "0").param("size", "5"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content", hasSize(5)))
@@ -211,7 +212,8 @@ class HelpPostControllerTest {
                 .andExpect(jsonPath("$.last").value(false));
 
         mockMvc.perform(get("/api/posts").header("Authorization", "Bearer " + token)
-                        .param("search", "pagination suite").param("page", "2").param("size", "5"))
+                        .param("search", "pagination suite").param("location", "West End")
+                        .param("page", "2").param("size", "5"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content", hasSize(2)))
                 .andExpect(jsonPath("$.last").value(true));

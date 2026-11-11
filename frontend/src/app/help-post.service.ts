@@ -9,7 +9,7 @@ export class HelpPostService {
   private readonly baseUrl = '/api/posts';
 
   list(
-    filters: { search?: string; category?: Category | ''; type?: PostType | ''; status?: PostStatus | '' },
+    filters: { search?: string; location?: string; category?: Category | ''; type?: PostType | ''; status?: PostStatus | '' },
     page: number,
     size: number,
   ): Observable<HelpPostPage> {

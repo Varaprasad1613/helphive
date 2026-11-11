@@ -50,7 +50,11 @@
     <div class="filter-bar">
       <label class="search-box">
         <span>⌕</span>
-        <input type="search" placeholder="Search help, skills, or places…" [value]="search()" (input)="onSearch($event)">
+        <input type="search" aria-label="Search help and skills" placeholder="Search help or skills…" [value]="search()" (input)="onSearch($event)">
+      </label>
+      <label class="location-box">
+        <span>⌖</span>
+        <input type="search" aria-label="Filter by city or neighborhood" placeholder="City or neighborhood" maxlength="80" [value]="location()" (input)="onLocation($event)">
       </label>
       <label>
         <span class="sr-only">Post type</span>

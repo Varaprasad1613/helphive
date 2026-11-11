@@ -32,7 +32,7 @@ public class HelpPostService {
         this.userRepository = userRepository;
     }
 
-    public HelpPostPageResponse findAll(String search, Category category, PostType type, PostStatus status,
+    public HelpPostPageResponse findAll(String search, String location, Category category, PostType type, PostStatus status,
                                         int page, int size, AuthenticatedUser currentUser) {
         if (page < 0) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Page index must not be negative");
@@ -43,6 +43,7 @@ public class HelpPostService {
         }
 
         String query = search == null ? "" : search.strip().toLowerCase(Locale.ROOT);
+        String locationQuery = location == null ? "" : location.strip().toLowerCase(Locale.ROOT);
         Long currentUserId = currentUser == null ? null : currentUser.id();
         Specification<HelpPost> specification = (root, criteria, builder) -> {
             List<Predicate> predicates = new ArrayList<>();
@@ -52,6 +53,11 @@ public class HelpPostService {
                         builder.like(builder.lower(root.get("title")), pattern, '\\'),
                         builder.like(builder.lower(root.get("description")), pattern, '\\'),
                         builder.like(builder.lower(root.get("location")), pattern, '\\')));
+            }
+            if (!locationQuery.isBlank()) {
+                String pattern = "%" + locationQuery.replace("\\", "\\\\")
+                        .replace("%", "\\%").replace("_", "\\_") + "%";
+                predicates.add(builder.like(builder.lower(root.get("location")), pattern, '\\'));
             }
             if (category != null) predicates.add(builder.equal(root.get("category"), category));
             if (type != null) predicates.add(builder.equal(root.get("type"), type));

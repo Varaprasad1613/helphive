@@ -34,6 +34,7 @@ export class CommunityPage {
   readonly selectedPost = signal<HelpPost | null>(null);
   readonly editingId = signal<number | null>(null);
   readonly search = signal('');
+  readonly location = signal('');
   readonly category = signal<Category | ''>('');
   readonly type = signal<PostType | ''>('');
   readonly status = signal<PostStatus | ''>('');
@@ -89,7 +90,13 @@ export class CommunityPage {
     this.loading.set(true);
     this.error.set('');
     this.service.list(
-      { search: this.search(), category: this.category(), type: this.type(), status: this.status() },
+      {
+        search: this.search(),
+        location: this.location(),
+        category: this.category(),
+        type: this.type(),
+        status: this.status(),
+      },
       this.pageIndex(),
       this.pageSize(),
     )
@@ -123,6 +130,12 @@ export class CommunityPage {
     this.refresh();
   }
 
+  onLocation(event: Event): void {
+    this.location.set((event.target as HTMLInputElement).value);
+    this.pageIndex.set(0);
+    this.refresh();
+  }
+
   setCategory(value: Category | ''): void {
     this.category.set(value);
     this.pageIndex.set(0);
@@ -142,7 +155,7 @@ export class CommunityPage {
   }
 
   clearFilters(): void {
-    this.search.set(''); this.category.set(''); this.type.set(''); this.status.set('');
+    this.search.set(''); this.location.set(''); this.category.set(''); this.type.set(''); this.status.set('');
     this.pageIndex.set(0);
     this.refresh();
   }

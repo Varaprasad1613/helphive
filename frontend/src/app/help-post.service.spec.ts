@@ -28,12 +28,13 @@ describe('HelpPostService', () => {
       last: true,
     };
 
-    service.list({ search: 'garden', category: 'HOME_AND_GARDEN' }, 1, 9)
+    service.list({ search: 'garden', location: 'West End', category: 'HOME_AND_GARDEN' }, 1, 9)
       .subscribe(page => expect(page).toEqual(result));
 
     const request = http.expectOne(req =>
       req.url === '/api/posts'
       && req.params.get('search') === 'garden'
+      && req.params.get('location') === 'West End'
       && req.params.get('category') === 'HOME_AND_GARDEN'
       && req.params.get('page') === '1'
       && req.params.get('size') === '9',
