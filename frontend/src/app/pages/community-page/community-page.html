@@ -80,7 +80,7 @@
         @for (post of posts(); track post.id) {
           <article class="post-card" (click)="view(post)" tabindex="0" (keydown.enter)="view(post)">
             <div class="card-topline">
-              <span class="type-tag" [class.offer]="post.type === 'OFFER'">{{ post.type === 'REQUEST' ? 'Needs a hand' : 'Happy to help' }}</span>
+              <span class="type-tag" [class.offer]="post.type === 'OFFER' && post.status !== 'COMPLETED'" [class.done]="post.status === 'COMPLETED'">{{ post.status === 'COMPLETED' ? 'Marked as done' : post.type === 'REQUEST' ? 'Needs a hand' : 'Happy to help' }}</span>
               <span class="status-dot" [class.progress]="post.status === 'IN_PROGRESS'" [class.done]="post.status === 'COMPLETED'"></span>
             </div>
             <div class="category-icon">{{ categoryIcon(post.category) }}</div>
