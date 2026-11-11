@@ -228,7 +228,7 @@ The deployed app keeps `MAIL_ENABLED=false` initially so current registration co
 | `SPRING_MAIL_PROPERTIES_MAIL_SMTP_AUTH` | `true` |
 | `SPRING_MAIL_PROPERTIES_MAIL_SMTP_STARTTLS_ENABLE` | `true` |
 
-`PUBLIC_URL` is already set to the live HelpHive URL and is used to create verification and reset links. Never commit SMTP credentials.
+`PUBLIC_URL` is already set to the live HelpHive URL and is used for account links and response-notification links. When mail is enabled, HelpHive emails post owners when a member responds and responders when their response is accepted or declined (including responses automatically declined after another response is accepted). These messages do not contain response text; recipients must sign in to view their inbox at `/my-responses`. Delivery errors are logged after the response change commits and do not undo the in-app response action. When `MAIL_ENABLED=false`, the in-app workflow still works and notification attempts are logged as not sent. Never commit SMTP credentials.
 
 Render automatically generates a private `JWT_SECRET` from `render.yaml`. For any non-Render production deployment, set `JWT_SECRET` to a cryptographically random value of at least 32 characters. You can optionally set `JWT_EXPIRATION` as an ISO-8601 duration such as `PT2H`.
 
