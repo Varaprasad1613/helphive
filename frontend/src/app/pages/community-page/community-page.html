@@ -165,9 +165,9 @@
       <h2 id="detail-title">{{ post.title }}</h2>
       <p class="detail-description">{{ post.description }}</p>
       <dl><div><dt>Posted by</dt><dd>{{ post.authorName }}</dd></div><div><dt>Location</dt><dd>{{ post.location }}</dd></div><div><dt>Category</dt><dd>{{ categoryLabel(post.category) }}</dd></div><div><dt>Status</dt><dd>{{ post.status.replace('_', ' ') }}</dd></div></dl>
-      @if (post.contact) {
+      @if (post.ownedByCurrentUser && post.contact) {
         <a class="contact-box" [href]="'mailto:' + post.contact"><span>✉</span><div><small>Contact {{ post.authorName.split(' ')[0] }}</small><b>{{ post.contact }}</b></div><strong>↗</strong></a>
-      } @else {
+      } @else if (post.ownerId === null) {
         <div class="contact-box"><span>♙</span><div><small>Community privacy</small><b>Contact details are for signed-in members</b></div></div>
       }
       @if (post.ownedByCurrentUser) {
@@ -175,12 +175,19 @@
         <div class="detail-actions"><button class="text-button" (click)="openEdit(post)">Edit</button><button class="text-button danger" (click)="remove(post)">Delete</button>@if (post.status !== 'COMPLETED') { <button class="button button-dark" (click)="advanceStatus(post)">{{ post.status === 'OPEN' ? 'Start progress' : 'Mark complete' }}</button> }</div>
       } @else if (post.ownerId === null) {
         <p class="owner-note muted">This is a read-only demo post.</p>
-      } @else if (post.status !== 'COMPLETED') {
+      } @else {
+        <div class="response-box">
+          <h3>Message the post owner privately</h3>
+          <p>Send a chat request first. The owner must accept before either of you can message.</p>
+          <button class="button button-dark" (click)="requestChat(post)">Request to chat ↗</button>
+        </div>
+        @if (post.status !== 'COMPLETED') {
         <div class="response-box">
           <h3>Respond to this post</h3><p>Introduce yourself and explain how you can help or connect.</p>
           <textarea rows="3" maxlength="600" placeholder="Write a helpful message…" [value]="responseMessage()" (input)="responseMessage.set($any($event.target).value)"></textarea>
           <button class="button button-primary" [disabled]="responding()" (click)="sendResponse(post)">{{ responding() ? 'Sending…' : 'Send response ↗' }}</button>
         </div>
+        }
       }
     </section>
   </div>

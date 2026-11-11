@@ -1,0 +1,116 @@
+<section class="page messages-page">
+  <header>
+    <div class="eyebrow">Private connections</div>
+    <h1>Messages</h1>
+    <p>Chat only after both people agree. Messages are encrypted on your device before they are sent.</p>
+  </header>
+
+  @if (error()) { <div class="message-error" role="alert">{{ error() }}</div> }
+  @if (state() === 'loading') {
+    <div class="message-state">Loading your secure messages…</div>
+  } @else if (state() === 'error') {
+    <section class="key-panel"><h2>Could not open secure messages</h2><p>We could not load your encrypted chat setup. Your messages were not changed.</p><button class="button button-dark" (click)="retrySetup()">Try again</button></section>
+  } @else if (state() === 'setup') {
+    <section class="key-panel">
+      <span class="key-icon">⌑</span>
+      <h2>Set up end-to-end encryption</h2>
+      <p>Your private key is created in this browser. HelpHive stores only your public key and a recovery-code-encrypted backup. Your recovery code is the only way to unlock your history on a new device.</p>
+      <p><strong>Save the recovery code somewhere safe.</strong> HelpHive cannot recover it. If you lose both the code and this device’s key, old messages cannot be read.</p>
+      <button class="button button-dark" [disabled]="loading()" (click)="generateRecoveryCode()">{{ loading() ? 'Creating key…' : 'Create my secure key' }}</button>
+    </section>
+  } @else if (state() === 'confirm') {
+    <section class="key-panel">
+      <h2>Save your recovery code</h2>
+      <p>Copy this code to a password manager or another safe place. It will only be shown during setup.</p>
+      <code class="recovery-code">{{ recoveryCode() }}</code>
+      <label>I saved my recovery code
+        <input type="text" autocomplete="off" [value]="confirmation()" (input)="confirmation.set($any($event.target).value)">
+      </label>
+      <button class="button button-dark" [disabled]="loading() || confirmation() !== recoveryCode()" (click)="saveSecureKey()">
+        {{ loading() ? 'Saving…' : 'Confirm and enable messages' }}
+      </button>
+    </section>
+  } @else if (state() === 'unlock') {
+    <section class="key-panel">
+      <span class="key-icon">⌑</span>
+      <h2>Unlock your encrypted messages</h2>
+      <p>This browser does not have your private chat key. Enter the recovery code you saved during setup. It is processed here and never sent to HelpHive.</p>
+      <label>Recovery code
+        <input type="password" autocomplete="off" [value]="unlockCode()" (input)="unlockCode.set($any($event.target).value)">
+      </label>
+      <button class="button button-dark" [disabled]="loading() || !unlockCode()" (click)="unlockWithRecoveryCode()">
+        {{ loading() ? 'Unlocking…' : 'Unlock messages' }}
+      </button>
+    </section>
+  } @else {
+    <div class="chat-layout">
+      <aside class="chat-sidebar">
+        <div class="tabs chat-tabs">
+          <button [class.active]="tab() === 'inbox'" (click)="tab.set('inbox')">Inbox <span>{{ conversations().length }}</span></button>
+          <button [class.active]="tab() === 'requests'" (click)="tab.set('requests')">Requests <span>{{ incomingRequests().length }}</span></button>
+          <button [class.active]="tab() === 'archived'" (click)="tab.set('archived')">Archived</button>
+          <button [class.active]="tab() === 'blocked'" (click)="tab.set('blocked')">Blocked</button>
+        </div>
+        @if (tab() === 'inbox' || tab() === 'archived') {
+          @let list = tab() === 'inbox' ? conversations() : archived();
+          @if (list.length === 0) { <div class="message-state">No {{ tab() }} conversations.</div> }
+          @for (conversation of list; track conversation.id) {
+            <button class="conversation-item" [class.selected]="active()?.id === conversation.id" (click)="select(conversation)">
+              <span class="peer-avatar">{{ conversation.peerName.charAt(0) }}</span>
+              <span class="peer-info"><strong>{{ conversation.peerName }}</strong><small>{{ conversation.postTitle || 'Private conversation' }}</small></span>
+            </button>
+          }
+        } @else if (tab() === 'requests') {
+          @if (incomingRequests().length === 0 && outgoingRequests().length === 0) { <div class="message-state">No chat requests.</div> }
+          @for (request of incomingRequests(); track request.id) {
+            <article class="request-item">
+              <strong>{{ request.requesterName }}</strong>
+              <small>Wants to chat{{ request.postTitle ? ' about “' + request.postTitle + '”' : '' }}</small>
+              <div class="request-actions"><button (click)="accept(request)" [disabled]="loading()">Accept</button><button class="secondary" (click)="decline(request)" [disabled]="loading()">Decline</button></div>
+            </article>
+          }
+          @for (request of outgoingRequests(); track request.id) {
+            <article class="request-item"><strong>{{ request.recipientName }}</strong><small>{{ request.postTitle || 'Chat invitation' }} · {{ statusLabel(request) }}</small><button class="secondary" (click)="cancel(request)">Cancel request</button></article>
+          }
+        } @else {
+          @if (blocked().length === 0) { <div class="message-state">You haven’t blocked anyone.</div> }
+          @for (user of blocked(); track user.userId) {
+            <article class="request-item"><strong>{{ user.name }}</strong><small>Blocked {{ user.blockedAt | date:'mediumDate' }}</small><button class="secondary" (click)="unblock(user)">Unblock</button></article>
+          }
+        }
+      </aside>
+
+      <section class="chat-thread">
+        @if (active(); as conversation) {
+          <header class="thread-header">
+            <div><h2>{{ conversation.peerName }}</h2><small>End-to-end encrypted @if (conversation.postTitle) { · {{ conversation.postTitle }} }</small></div>
+            <button class="secondary" (click)="archive(conversation, tab() !== 'archived')">{{ tab() === 'archived' ? 'Restore' : 'Remove from inbox' }}</button>
+            <button class="secondary danger" (click)="blockPeer(conversation)">Block</button>
+          </header>
+          <div class="thread-messages" aria-live="polite">
+            @for (message of messages(); track message.id) {
+              <article class="chat-bubble" [class.mine]="message.senderId === auth.user()?.id">
+                <p>{{ message.plaintext }}</p><time>{{ message.createdAt | date:'short' }}</time>
+              </article>
+            }
+            @if (messages().length === 0) { <p class="message-state">This conversation is encrypted. Say hello.</p> }
+          </div>
+          <form class="compose" (submit)="$event.preventDefault(); sendMessage()">
+            <textarea maxlength="2000" rows="2" placeholder="Write an encrypted message…" [value]="draft()" (input)="draft.set($any($event.target).value)"></textarea>
+            <button class="button button-dark" type="submit" [disabled]="sending() || !draft().trim()">{{ sending() ? 'Sending…' : 'Send' }}</button>
+          </form>
+          <details class="report-panel">
+            <summary>Report this conversation</summary>
+            <label>Reason<textarea maxlength="500" [value]="reportReason()" (input)="reportReason.set($any($event.target).value)"></textarea></label>
+            <label class="evidence-choice"><input type="checkbox" [checked]="reportEvidence()" (change)="reportEvidence.set($any($event.target).checked)">Share the latest message with admins as evidence (optional; it will be readable to them)</label>
+            <button class="secondary danger" (click)="reportPeer(conversation)">Submit report</button>
+          </details>
+        } @else {
+          <div class="message-state thread-empty"><span>✉</span><h2>Your private messages</h2><p>Select a conversation or accept a chat request. You control which conversations you keep in your inbox.</p></div>
+        }
+      </section>
+    </div>
+    <p class="encryption-note">Messages are encrypted on your device. HelpHive cannot read message text. Report evidence is shared with moderators only when you explicitly choose it.</p>
+  }
+</section>
+@if (toast()) { <div class="toast">✓ {{ toast() }}</div> }

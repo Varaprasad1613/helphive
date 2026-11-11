@@ -5,6 +5,7 @@
 nav { display: flex; align-items: center; gap: 22px; margin: 0 auto; }
 nav a { padding: 28px 0 24px; border-bottom: 3px solid transparent; color: var(--muted); font-size: 13px; font-weight: 700; }
 nav a.active { color: var(--green); border-color: var(--coral); }
+.mobile-menu { display: none; position: relative; }.mobile-menu summary { cursor: pointer; font-size: 13px; font-weight: 800; list-style: none; }.mobile-menu summary::-webkit-details-marker { display: none; }.mobile-menu nav { position: absolute; top: 34px; right: 0; z-index: 30; min-width: 190px; padding: 8px; border: 1px solid var(--line); border-radius: 9px; background: white; box-shadow: 0 12px 30px rgba(23,45,40,.14); }.mobile-menu nav a { display: block; padding: 11px 12px; border: 0; border-radius: 5px; }.mobile-menu nav a.active { background: #eef5f1; }
 .header-actions { display: flex; align-items: center; gap: 10px; }
 .account-chip { display: flex; align-items: center; gap: 7px; font-size: 12px; font-weight: 700; }
 .account-chip span { width: 30px; height: 30px; border-radius: 50%; background: var(--green); color: white; display: grid; place-items: center; }
@@ -13,5 +14,5 @@ nav a.active { color: var(--green); border-color: var(--coral); }
 .page-shell { min-height: calc(100vh - 150px); }
 footer { padding: 32px clamp(20px, 5vw, 74px); display: flex; align-items: center; justify-content: space-between; background: #10261f; color: white; }
 footer p, footer > span { color: #90a39c; font-size: 11px; }
-@media (max-width: 1050px) { nav { display: none; }.account-chip { display: none; }.site-header { justify-content: space-between; } }
+@media (max-width: 1050px) { .site-header > nav { display: none; }.mobile-menu { display: block; margin-left: auto; }.mobile-menu nav { display: block; }.account-chip { display: none; }.site-header { justify-content: space-between; } }
 @media (max-width: 620px) { .site-header { min-height: 68px; padding: 0 14px; }.header-actions .text-button { display: none; }.button { padding: 0 10px; }.brand { font-size: 18px; } footer { flex-direction: column; gap: 12px; text-align: center; } }

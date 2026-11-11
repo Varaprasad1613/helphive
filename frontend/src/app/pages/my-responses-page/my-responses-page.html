@@ -10,8 +10,9 @@
         <article>
           <div class="top"><span class="status" [class.accepted]="response.status === 'ACCEPTED'" [class.declined]="response.status === 'DECLINED'">{{ response.status }}</span><small>{{ response.createdAt | date:'medium' }}</small></div>
           <h2>{{ response.postTitle }}</h2>
-          <p class="person">{{ tab() === 'received' ? 'From ' + response.responderName + ' · ' + response.responderEmail : 'To ' + response.postOwnerName }}</p>
+          <p class="person">{{ tab() === 'received' ? 'From ' + response.responderName : 'To ' + response.postOwnerName }}</p>
           <blockquote>{{ response.message }}</blockquote>
+          @if (response.postOwnerId !== null) { <div class="actions"><button class="secondary" (click)="requestChat(response)">Request private chat</button></div> }
           @if (tab() === 'received' && response.status === 'PENDING') { <div class="actions"><button (click)="review(response, 'ACCEPTED')">Accept</button><button class="secondary" (click)="review(response, 'DECLINED')">Decline</button></div> }
           @if (tab() === 'sent' && response.canWithdraw) { <div class="actions"><button class="secondary" (click)="withdraw(response)">Withdraw response</button></div> }
         </article>

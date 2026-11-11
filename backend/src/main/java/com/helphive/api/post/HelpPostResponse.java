@@ -19,10 +19,11 @@ public record HelpPostResponse(
 ) {
     public static HelpPostResponse from(HelpPost post, Long currentUserId) {
         Long ownerId = post.getOwner() == null ? null : post.getOwner().getId();
+        boolean ownedByCurrentUser = ownerId != null && ownerId.equals(currentUserId);
         return new HelpPostResponse(
                 post.getId(), post.getTitle(), post.getDescription(), post.getAuthorName(),
-                currentUserId == null ? null : post.getContact(), post.getLocation(), post.getCategory(), post.getType(),
-                post.getStatus(), ownerId, ownerId != null && ownerId.equals(currentUserId),
+                ownedByCurrentUser ? post.getContact() : null, post.getLocation(), post.getCategory(), post.getType(),
+                post.getStatus(), ownerId, ownedByCurrentUser,
                 post.getCreatedAt(), post.getUpdatedAt());
     }
 }

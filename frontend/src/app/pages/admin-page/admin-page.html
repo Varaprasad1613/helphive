@@ -1,6 +1,6 @@
 <section class="page">
   <header><div class="eyebrow">Administration</div><h1>Community dashboard</h1><p>Monitor activity, manage members, and keep HelpHive useful and safe.</p></header>
-  <div class="tabs"><button [class.active]="tab() === 'overview'" (click)="tab.set('overview')">Overview</button><button [class.active]="tab() === 'members'" (click)="tab.set('members')">Members</button><button [class.active]="tab() === 'posts'" (click)="tab.set('posts')">Posts</button></div>
+  <div class="tabs"><button [class.active]="tab() === 'overview'" (click)="tab.set('overview')">Overview</button><button [class.active]="tab() === 'members'" (click)="tab.set('members')">Members</button><button [class.active]="tab() === 'posts'" (click)="tab.set('posts')">Posts</button><button [class.active]="tab() === 'reports'" (click)="tab.set('reports')">Chat reports <span>{{ reports().filter(report => report.status === 'OPEN').length }}</span></button></div>
   @if (loading()) { <div class="state">Loading admin data…</div> }
   @else if (error()) { <div class="state"><p>{{ error() }}</p><button (click)="load()">Try again</button></div> }
   @else if (tab() === 'overview') {
@@ -10,8 +10,15 @@
     <div class="table-wrap"><table><thead><tr><th>Member</th><th>Joined</th><th>Posts</th><th>Verified</th><th>Role</th><th>Account</th></tr></thead><tbody>
       @for (user of users(); track user.id) { <tr [class.suspended]="!user.active"><td><b>{{ user.name }}</b><small>{{ user.email }}</small></td><td>{{ user.createdAt | date:'mediumDate' }}</td><td>{{ user.postCount }}</td><td>{{ user.emailVerified ? 'Yes' : 'No' }}</td><td><select [value]="user.role" [disabled]="user.id === auth.user()?.id" (change)="changeRole(user, $any($event.target).value)"><option value="MEMBER">Member</option><option value="ADMIN">Admin</option></select></td><td><button class="status-button" [disabled]="user.id === auth.user()?.id" [class.activate]="!user.active" (click)="toggleActive(user)">{{ user.active ? 'Suspend' : 'Reactivate' }}</button></td></tr> }
     </tbody></table></div>
-  } @else {
+  } @else if (tab() === 'posts') {
     <div class="post-list">@for (post of posts(); track post.id) { <article><div><span>{{ post.type }} · {{ post.status.replace('_', ' ') }}</span><h2>{{ post.title }}</h2><p>{{ post.description }}</p><small>{{ post.authorName }} · {{ post.location }} · {{ post.createdAt | date:'mediumDate' }}</small></div><button (click)="deletePost(post)">Remove</button></article> }</div>
+  } @else {
+    <div class="post-list">@for (report of reports(); track report.id) {
+      <article><div><span>Report #{{ report.id }} · {{ report.status }} · {{ report.createdAt | date:'medium' }}</span><h2>{{ report.reporterName }} reported {{ report.reportedUserName }}</h2><p>{{ report.reason }}</p>
+        @if (report.optionalEvidence) { <details><summary>Evidence shared by reporter</summary><blockquote>{{ report.optionalEvidence }}</blockquote></details> }
+        <small>Conversation #{{ report.conversationId }} · Encrypted chat content is not available unless the reporter voluntarily shared evidence.</small>
+      </div><div class="report-actions"><button (click)="updateReport(report, 'REVIEWED')" [disabled]="report.status !== 'OPEN'">Review</button><button (click)="updateReport(report, 'DISMISSED')" [disabled]="report.status === 'DISMISSED'">Dismiss</button></div></article>
+    } @empty { <div class="state">No chat reports have been filed.</div> }</div>
   }
 </section>
 @if (toast()) { <div class="toast">{{ toast() }}</div> }

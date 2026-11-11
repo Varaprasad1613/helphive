@@ -6,9 +6,21 @@
     <a routerLink="/community" routerLinkActive="active">Community</a>
     <a routerLink="/my-posts" routerLinkActive="active">My posts</a>
     <a routerLink="/my-responses" routerLinkActive="active">My responses</a>
+    <a routerLink="/messages" routerLinkActive="active">Messages</a>
     <a routerLink="/account" routerLinkActive="active">My account</a>
     @if (auth.user()?.role === 'ADMIN') { <a routerLink="/admin" routerLinkActive="active">Admin</a> }
   </nav>
+  <details class="mobile-menu">
+    <summary>Menu</summary>
+    <nav aria-label="Mobile navigation">
+      <a routerLink="/community" routerLinkActive="active">Community</a>
+      <a routerLink="/my-posts" routerLinkActive="active">My posts</a>
+      <a routerLink="/my-responses" routerLinkActive="active">My responses</a>
+      <a routerLink="/messages" routerLinkActive="active">Messages</a>
+      <a routerLink="/account" routerLinkActive="active">My account</a>
+      @if (auth.user()?.role === 'ADMIN') { <a routerLink="/admin" routerLinkActive="active">Admin</a> }
+    </nav>
+  </details>
   <div class="header-actions">
     @if (auth.user(); as user) {
       <a class="account-chip" routerLink="/account"><span>{{ user.name.charAt(0) }}</span>{{ user.name }}</a>
