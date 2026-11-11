@@ -2,6 +2,7 @@ import { DatePipe } from '@angular/common';
 import { Component, computed, inject, signal } from '@angular/core';
 import { HelpResponse, ResponseStatus } from '../../help-response.model';
 import { HelpResponseService } from '../../help-response.service';
+import { ChatService } from '../../chat.service';
 
 @Component({
   selector: 'app-my-responses-page',
@@ -11,6 +12,7 @@ import { HelpResponseService } from '../../help-response.service';
 })
 export class MyResponsesPage {
   private readonly service = inject(HelpResponseService);
+  private readonly chatService = inject(ChatService);
   readonly sent = signal<HelpResponse[]>([]);
   readonly received = signal<HelpResponse[]>([]);
   readonly tab = signal<'received' | 'sent'>('received');
@@ -37,6 +39,14 @@ export class MyResponsesPage {
     this.service.withdraw(response.id).subscribe({
       next: () => { this.sent.update(items => items.filter(item => item.id !== response.id)); this.show('Response withdrawn.'); },
       error: () => this.show('Could not withdraw this response.'),
+    });
+  }
+  requestChat(response: HelpResponse): void {
+    const recipientId = response.received ? response.responderId : response.postOwnerId;
+    if (recipientId === null) return;
+    this.chatService.createRequest(recipientId, null, response.id).subscribe({
+      next: () => this.show('Chat request sent. You can message after they accept.'),
+      error: (error) => this.show(error.error?.message ?? 'Could not send the chat request. Set up secure messages first.'),
     });
   }
   private finished(): void { this.completedLoads += 1; if (this.completedLoads === 2) this.loading.set(false); }

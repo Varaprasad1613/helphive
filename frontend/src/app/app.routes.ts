@@ -8,6 +8,7 @@ import { MyPostsPage } from './pages/my-posts-page/my-posts-page';
 import { MyResponsesPage } from './pages/my-responses-page/my-responses-page';
 import { AccountRecoveryPage } from './pages/account-recovery-page/account-recovery-page';
 import { AdminPage } from './pages/admin-page/admin-page';
+import { MessagesPage } from './pages/messages-page/messages-page';
 
 export const routes: Routes = [
   { path: 'auth/login', component: AuthPage, canActivate: [guestGuard], title: 'Sign in | HelpHive' },
@@ -21,6 +22,7 @@ export const routes: Routes = [
       { path: 'account', component: AccountPage, title: 'My account | HelpHive' },
       { path: 'my-posts', component: MyPostsPage, title: 'My posts | HelpHive' },
       { path: 'my-responses', component: MyResponsesPage, title: 'My responses | HelpHive' },
+      { path: 'messages', component: MessagesPage, title: 'Messages | HelpHive' },
       { path: 'admin', component: AdminPage, canActivate: [adminGuard], title: 'Admin | HelpHive' },
       { path: '', pathMatch: 'full', redirectTo: 'community' },
     ],

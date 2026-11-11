@@ -26,6 +26,7 @@ This is a complete full-stack project rather than a portfolio or static demo. Th
 - Routed member workspace with My Account, My Posts, and My Responses pages
 - Profile editing and secure current-password-verified password changes
 - Help responses with sent/received inboxes and accept, decline, and withdraw actions
+- Consent-based private messaging with encrypted messages, archive, block, and report controls
 - Optional email verification with 24-hour single-use links
 - Password recovery with 30-minute single-use reset links
 - Admin dashboard with member roles, account suspension, activity totals, and post moderation
@@ -156,6 +157,30 @@ The community board supports a separate optional `location` query parameter to f
 | `GET` | `/api/responses/received` | List responses received on owned posts |
 | `PATCH` | `/api/responses/{id}/status` | Accept or decline a received response |
 | `DELETE` | `/api/responses/{id}` | Withdraw a pending sent response |
+
+### Private messaging
+
+Members can start a chat only from a post or response involving the other participant. The recipient must accept the request before either person can send messages. Requests are limited to 10 per requester per day. Members can archive a conversation for themselves, block or unblock another member, and report a conversation. Admins can review reports at `/api/admin/chat-reports`; report evidence includes plaintext only when the reporter explicitly opts to submit the latest message.
+
+Message bodies are encrypted in the browser with AES-256-GCM. Each conversation key is wrapped separately for both participants using RSA-OAEP/SHA-256. The server stores ciphertext, initialization vectors, public keys, and an encrypted private-key backup; it does not receive message plaintext during normal chat. A message's authentication data is bound to its conversation ID.
+
+On first use, the browser creates a keypair and displays a one-time recovery code. A backup of the private key is encrypted using a key derived from that code with PBKDF2-SHA-256 (600,000 iterations) and AES-GCM. The private key is also stored in that browser's IndexedDB for routine use. Save the recovery code somewhere secure: HelpHive cannot recover it, and losing it together with the original browser's local key means the encrypted history cannot be read on a new device. Never share the code.
+
+This is client-side encryption, not an independently audited messaging protocol. It does not provide forward secrecy: compromise of a participant's private key can expose stored conversation keys and past messages. It also trusts the HelpHive server to deliver the intended client code and public keys; a malicious or compromised server/client could undermine confidentiality. Use HTTPS and keep the browser and account secure. Messages refresh by polling, not instant push delivery.
+
+| Method | Endpoint | Purpose |
+| --- | --- | --- |
+| `GET` / `PUT` | `/api/chat/keys/me` | Read or register the current user's chat keys |
+| `GET` | `/api/chat/keys/{userId}` | Read a member's public chat key |
+| `GET` / `POST` | `/api/chat/requests` | List or create chat invitations |
+| `PATCH` / `DELETE` | `/api/chat/requests/{id}` | Accept/decline or cancel an invitation |
+| `GET` | `/api/chat/conversations` | List accepted, non-archived conversations |
+| `GET` / `POST` | `/api/chat/conversations/{id}/messages` | Read ciphertext or send an encrypted message |
+| `PATCH` | `/api/chat/conversations/{id}/archive` | Archive or restore a conversation |
+| `GET` | `/api/chat/blocks` | List members you've blocked |
+| `POST` / `DELETE` | `/api/chat/blocks/{userId}` | Block or unblock a member |
+| `POST` | `/api/chat/conversations/{id}/report` | Report a conversation |
+| `GET` / `PATCH` | `/api/admin/chat-reports` | Admin-only report review and status updates |
 
 Admin endpoints live under `/api/admin/**` and require the `ADMIN` role.
 

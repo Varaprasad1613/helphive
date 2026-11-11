@@ -7,6 +7,7 @@ import { Category, HelpPost, HelpPostInput, PostStats, PostStatus, PostType } fr
 import { HelpPostService } from '../../help-post.service';
 import { AuthService } from '../../auth.service';
 import { HelpResponseService } from '../../help-response.service';
+import { ChatService } from '../../chat.service';
 
 @Component({
   selector: 'app-community-page',
@@ -20,6 +21,7 @@ export class CommunityPage {
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
   private readonly responseService = inject(HelpResponseService);
+  private readonly chatService = inject(ChatService);
   readonly auth = inject(AuthService);
 
   readonly posts = signal<HelpPost[]>([]);
@@ -232,6 +234,16 @@ export class CommunityPage {
     this.responseService.create(post.id, message).subscribe({
       next: () => { this.responding.set(false); this.selectedPost.set(null); this.responseMessage.set(''); this.showToast('Your response was sent'); },
       error: (response: HttpErrorResponse) => { this.responding.set(false); this.showToast(response.error?.message ?? 'Could not send your response'); },
+    });
+  }
+
+  requestChat(post: HelpPost): void {
+    if (!post.ownerId) return;
+    this.chatService.createRequest(post.ownerId, post.id, null).subscribe({
+      next: () => this.showToast('Chat request sent. You can message after the post owner accepts.'),
+      error: (response: HttpErrorResponse) => this.showToast(
+        response.error?.message ?? 'Could not send the chat request. Set up secure messages first.',
+      ),
     });
   }
 

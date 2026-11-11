@@ -4,6 +4,8 @@ import { forkJoin } from 'rxjs';
 import { AdminOverview, AdminPost, AdminUser } from '../../admin.model';
 import { AdminService } from '../../admin.service';
 import { AuthService } from '../../auth.service';
+import { ChatService } from '../../chat.service';
+import { ChatReport } from '../../chat.model';
 
 @Component({
   selector: 'app-admin-page',
@@ -13,11 +15,13 @@ import { AuthService } from '../../auth.service';
 })
 export class AdminPage {
   private readonly service = inject(AdminService);
+  private readonly chatService = inject(ChatService);
   readonly auth = inject(AuthService);
   readonly overview = signal<AdminOverview>({ users: 0, activeUsers: 0, posts: 0, responses: 0, pendingResponses: 0 });
   readonly users = signal<AdminUser[]>([]);
   readonly posts = signal<AdminPost[]>([]);
-  readonly tab = signal<'overview' | 'members' | 'posts'>('overview');
+  readonly reports = signal<ChatReport[]>([]);
+  readonly tab = signal<'overview' | 'members' | 'posts' | 'reports'>('overview');
   readonly loading = signal(true);
   readonly error = signal('');
   readonly toast = signal('');
@@ -25,8 +29,16 @@ export class AdminPage {
   constructor() { this.load(); }
   load(): void {
     this.loading.set(true); this.error.set('');
-    forkJoin({ overview: this.service.overview(), users: this.service.users(), posts: this.service.posts() }).subscribe({
-      next: result => { this.overview.set(result.overview); this.users.set(result.users); this.posts.set(result.posts); this.loading.set(false); },
+    forkJoin({
+      overview: this.service.overview(),
+      users: this.service.users(),
+      posts: this.service.posts(),
+      reports: this.chatService.reports(),
+    }).subscribe({
+      next: result => {
+        this.overview.set(result.overview); this.users.set(result.users); this.posts.set(result.posts);
+        this.reports.set(result.reports); this.loading.set(false);
+      },
       error: () => { this.loading.set(false); this.error.set('Could not load the admin dashboard.'); },
     });
   }
@@ -47,6 +59,15 @@ export class AdminPage {
     this.service.deletePost(post.id).subscribe({
       next: () => { this.posts.update(items => items.filter(item => item.id !== post.id)); this.show('Post removed.'); this.refreshOverview(); },
       error: () => this.show('Could not remove the post.'),
+    });
+  }
+  updateReport(report: ChatReport, status: ChatReport['status']): void {
+    this.chatService.updateReport(report.id, status).subscribe({
+      next: updated => {
+        this.reports.update(items => items.map(item => item.id === updated.id ? updated : item));
+        this.show(`Report marked ${status.toLowerCase()}.`);
+      },
+      error: () => this.show('Could not update this report.'),
     });
   }
   private replaceUser(updated: AdminUser): void { this.users.update(items => items.map(item => item.id === updated.id ? updated : item)); }
