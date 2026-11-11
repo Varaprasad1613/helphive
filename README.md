@@ -32,6 +32,7 @@ This is a complete full-stack project rather than a portfolio or static demo. Th
 - Contact details visible only to signed-in community members
 - Request help or offer a skill
 - Keyword, category, type, and status filters
+- Database-backed pagination and page-size controls for the community board
 - Open → in progress → completed workflow
 - Live community-impact statistics
 - Responsive custom UI for desktop, tablet, and mobile
@@ -161,11 +162,12 @@ Registration does not grant immediate community access: after creating an accoun
 When email delivery is enabled, new accounts must verify their email before signing in. Existing accounts remain verified during the database upgrade.
 
 List filters are optional query parameters: `search`, `category`, `type`, and `status`.
+Pagination query parameters are `page` (zero-based, defaults to `0`) and `size` (defaults to `9`, maximum `50`). The response contains `content`, `page`, `size`, `totalElements`, `totalPages`, `first`, and `last`.
 
 Example:
 
 ```http
-GET /api/posts?search=laptop&category=TECHNOLOGY&status=OPEN
+GET /api/posts?search=laptop&category=TECHNOLOGY&status=OPEN&page=0&size=9
 ```
 
 Health check: `GET /actuator/health`
@@ -258,7 +260,6 @@ helphive/
 - Image uploads with object storage
 - Map-based distance filtering
 - Email notifications
-- Pagination for larger communities
 
 ## License
 

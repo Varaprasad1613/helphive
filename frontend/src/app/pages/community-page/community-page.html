@@ -95,6 +95,21 @@
           </article>
         }
       </div>
+      @if (totalPages() > 1) {
+        <nav class="pagination" aria-label="Community board pages">
+          <button class="button button-ghost button-small" [disabled]="pageIndex() === 0" (click)="setPage(pageIndex() - 1)">Previous</button>
+          <span aria-live="polite">Page {{ pageIndex() + 1 }} of {{ totalPages() }}</span>
+          <label>
+            <span class="sr-only">Posts per page</span>
+            <select [value]="pageSize()" (change)="setPageSize(+$any($event.target).value)">
+              <option value="9">9 per page</option>
+              <option value="18">18 per page</option>
+              <option value="36">36 per page</option>
+            </select>
+          </label>
+          <button class="button button-ghost button-small" [disabled]="pageIndex() + 1 >= totalPages()" (click)="setPage(pageIndex() + 1)">Next</button>
+        </nav>
+      }
     }
   </section>
 

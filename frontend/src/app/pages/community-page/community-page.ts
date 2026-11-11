@@ -37,7 +37,17 @@ export class CommunityPage {
   readonly category = signal<Category | ''>('');
   readonly type = signal<PostType | ''>('');
   readonly status = signal<PostStatus | ''>('');
-  readonly resultLabel = computed(() => `${this.posts().length} ${this.posts().length === 1 ? 'match' : 'matches'}`);
+  readonly pageIndex = signal(0);
+  readonly pageSize = signal(9);
+  readonly totalElements = signal(0);
+  readonly totalPages = signal(0);
+  readonly resultLabel = computed(() => {
+    const total = this.totalElements();
+    if (total === 0) return '0 posts';
+    const first = this.pageIndex() * this.pageSize() + 1;
+    const last = first + this.posts().length - 1;
+    return `Showing ${first}–${last} of ${total} posts`;
+  });
 
   readonly categories: { value: Category; label: string; icon: string }[] = [
     { value: 'EDUCATION', label: 'Education', icon: '✦' },
@@ -70,15 +80,31 @@ export class CommunityPage {
   refresh(): void {
     if (!this.auth.authenticated()) {
       this.posts.set([]);
+      this.totalElements.set(0);
+      this.totalPages.set(0);
       this.stats.set({ total: 0, open: 0, offers: 0, requests: 0, completed: 0 });
       this.loading.set(false);
       return;
     }
     this.loading.set(true);
     this.error.set('');
-    this.service.list({ search: this.search(), category: this.category(), type: this.type(), status: this.status() })
+    this.service.list(
+      { search: this.search(), category: this.category(), type: this.type(), status: this.status() },
+      this.pageIndex(),
+      this.pageSize(),
+    )
       .subscribe({
-        next: posts => { this.posts.set(posts); this.loading.set(false); },
+        next: result => {
+          if (this.pageIndex() > 0 && this.pageIndex() >= result.totalPages) {
+            this.pageIndex.set(Math.max(0, result.totalPages - 1));
+            this.refresh();
+            return;
+          }
+          this.posts.set(result.content);
+          this.totalElements.set(result.totalElements);
+          this.totalPages.set(result.totalPages);
+          this.loading.set(false);
+        },
         error: (response: HttpErrorResponse) => {
           if (response.status === 401) {
             this.restrictAccess('Your session expired. Sign in again to continue.');
@@ -93,26 +119,44 @@ export class CommunityPage {
 
   onSearch(event: Event): void {
     this.search.set((event.target as HTMLInputElement).value);
+    this.pageIndex.set(0);
     this.refresh();
   }
 
   setCategory(value: Category | ''): void {
     this.category.set(value);
+    this.pageIndex.set(0);
     this.refresh();
   }
 
   setType(value: string): void {
     this.type.set(value as PostType | '');
+    this.pageIndex.set(0);
     this.refresh();
   }
 
   setStatus(value: string): void {
     this.status.set(value as PostStatus | '');
+    this.pageIndex.set(0);
     this.refresh();
   }
 
   clearFilters(): void {
     this.search.set(''); this.category.set(''); this.type.set(''); this.status.set('');
+    this.pageIndex.set(0);
+    this.refresh();
+  }
+
+  setPage(page: number): void {
+    if (page < 0 || page >= this.totalPages() || page === this.pageIndex()) return;
+    this.pageIndex.set(page);
+    this.refresh();
+  }
+
+  setPageSize(size: number): void {
+    if (![9, 18, 36].includes(size)) return;
+    this.pageSize.set(size);
+    this.pageIndex.set(0);
     this.refresh();
   }
 
@@ -155,6 +199,7 @@ export class CommunityPage {
     request.subscribe({
       next: () => {
         this.saving.set(false); this.modalOpen.set(false);
+        if (this.editingId() === null) this.pageIndex.set(0);
         this.showToast(this.editingId() ? 'Post updated successfully' : 'Your post is live');
         this.refresh();
       },
