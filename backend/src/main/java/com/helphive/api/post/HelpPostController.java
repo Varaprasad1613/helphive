@@ -27,13 +27,15 @@ public class HelpPostController {
     }
 
     @GetMapping
-    public List<HelpPostResponse> findAll(
+    public HelpPostPageResponse findAll(
             @RequestParam(required = false) String search,
             @RequestParam(required = false) Category category,
             @RequestParam(required = false) PostType type,
             @RequestParam(required = false) PostStatus status,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "9") int size,
             @AuthenticationPrincipal AuthenticatedUser currentUser) {
-        return service.findAll(search, category, type, status, currentUser);
+        return service.findAll(search, category, type, status, page, size, currentUser);
     }
 
     @GetMapping("/{id}")

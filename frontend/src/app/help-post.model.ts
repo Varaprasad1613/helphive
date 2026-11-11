@@ -26,6 +26,16 @@ export interface HelpPostInput {
   type: PostType;
 }
 
+export interface HelpPostPage {
+  content: HelpPost[];
+  page: number;
+  size: number;
+  totalElements: number;
+  totalPages: number;
+  first: boolean;
+  last: boolean;
+}
+
 export interface PostStats {
   total: number;
   open: number;

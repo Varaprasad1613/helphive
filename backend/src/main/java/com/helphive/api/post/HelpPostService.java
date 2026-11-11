@@ -4,16 +4,26 @@ import com.helphive.api.auth.AuthenticatedUser;
 import com.helphive.api.common.ResourceNotFoundException;
 import com.helphive.api.user.AppUser;
 import com.helphive.api.user.AppUserRepository;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import jakarta.persistence.criteria.Predicate;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
 
 @Service
 @Transactional(readOnly = true)
 public class HelpPostService {
+    static final int DEFAULT_PAGE_SIZE = 9;
+    static final int MAX_PAGE_SIZE = 50;
+
     private final HelpPostRepository repository;
     private final AppUserRepository userRepository;
 
@@ -22,20 +32,38 @@ public class HelpPostService {
         this.userRepository = userRepository;
     }
 
-    public List<HelpPostResponse> findAll(String search, Category category, PostType type, PostStatus status,
-                                          AuthenticatedUser currentUser) {
+    public HelpPostPageResponse findAll(String search, Category category, PostType type, PostStatus status,
+                                        int page, int size, AuthenticatedUser currentUser) {
+        if (page < 0) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Page index must not be negative");
+        }
+        if (size < 1 || size > MAX_PAGE_SIZE) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Page size must be between 1 and " + MAX_PAGE_SIZE);
+        }
+
         String query = search == null ? "" : search.strip().toLowerCase(Locale.ROOT);
         Long currentUserId = currentUser == null ? null : currentUser.id();
-        return repository.findAll(Sort.by(Sort.Direction.DESC, "createdAt")).stream()
-                .filter(post -> query.isBlank()
-                        || post.getTitle().toLowerCase(Locale.ROOT).contains(query)
-                        || post.getDescription().toLowerCase(Locale.ROOT).contains(query)
-                        || post.getLocation().toLowerCase(Locale.ROOT).contains(query))
-                .filter(post -> category == null || post.getCategory() == category)
-                .filter(post -> type == null || post.getType() == type)
-                .filter(post -> status == null || post.getStatus() == status)
-                .map(post -> HelpPostResponse.from(post, currentUserId))
-                .toList();
+        Specification<HelpPost> specification = (root, criteria, builder) -> {
+            List<Predicate> predicates = new ArrayList<>();
+            if (!query.isBlank()) {
+                String pattern = "%" + query.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_") + "%";
+                predicates.add(builder.or(
+                        builder.like(builder.lower(root.get("title")), pattern, '\\'),
+                        builder.like(builder.lower(root.get("description")), pattern, '\\'),
+                        builder.like(builder.lower(root.get("location")), pattern, '\\')));
+            }
+            if (category != null) predicates.add(builder.equal(root.get("category"), category));
+            if (type != null) predicates.add(builder.equal(root.get("type"), type));
+            if (status != null) predicates.add(builder.equal(root.get("status"), status));
+            return builder.and(predicates.toArray(Predicate[]::new));
+        };
+        Page<HelpPostResponse> results = repository.findAll(
+                        specification,
+                        PageRequest.of(page, size, Sort.by(
+                                Sort.Order.desc("createdAt"), Sort.Order.desc("id"))))
+                .map(post -> HelpPostResponse.from(post, currentUserId));
+        return HelpPostPageResponse.from(results);
     }
 
     public HelpPostResponse findById(Long id, AuthenticatedUser currentUser) {

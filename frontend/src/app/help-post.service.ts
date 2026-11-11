@@ -1,19 +1,24 @@
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
-import { Category, HelpPost, HelpPostInput, PostStats, PostStatus, PostType } from './help-post.model';
+import { Category, HelpPost, HelpPostInput, HelpPostPage, PostStats, PostStatus, PostType } from './help-post.model';
 
 @Injectable({ providedIn: 'root' })
 export class HelpPostService {
   private readonly http = inject(HttpClient);
   private readonly baseUrl = '/api/posts';
 
-  list(filters: { search?: string; category?: Category | ''; type?: PostType | ''; status?: PostStatus | '' }): Observable<HelpPost[]> {
+  list(
+    filters: { search?: string; category?: Category | ''; type?: PostType | ''; status?: PostStatus | '' },
+    page: number,
+    size: number,
+  ): Observable<HelpPostPage> {
     let params = new HttpParams();
     Object.entries(filters).forEach(([key, value]) => {
       if (value) params = params.set(key, value);
     });
-    return this.http.get<HelpPost[]>(this.baseUrl, { params });
+    params = params.set('page', page).set('size', size);
+    return this.http.get<HelpPostPage>(this.baseUrl, { params });
   }
 
   stats(): Observable<PostStats> {

@@ -43,7 +43,8 @@ class HelpPostControllerTest {
                 .andExpect(jsonPath("$[0].id").value(id));
         mockMvc.perform(get("/api/posts").header("Authorization", "Bearer " + token)
                         .param("category", "TECHNOLOGY").param("search", "phone"))
-                .andExpect(status().isOk()).andExpect(jsonPath("$", hasSize(1)));
+                .andExpect(status().isOk()).andExpect(jsonPath("$.content", hasSize(1)))
+                .andExpect(jsonPath("$.totalElements").value(1));
         mockMvc.perform(patch("/api/posts/{id}/status", id).header("Authorization", "Bearer " + token)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"status\":\"COMPLETED\"}"))
@@ -183,6 +184,42 @@ class HelpPostControllerTest {
                 .andExpect(status().isOk()).andExpect(jsonPath("$[0].status").value("ACCEPTED"));
         mockMvc.perform(get("/api/posts/{id}", postId).header("Authorization", "Bearer " + ownerToken))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.status").value("IN_PROGRESS"));
+    }
+
+    @Test
+    void filtersAndPaginatesCommunityPosts() throws Exception {
+        String token = registerAndLogin("Pagination Member", "pagination-member@example.com");
+        for (int index = 0; index < 12; index++) {
+            String body = """
+                    {"title":"Pagination Suite %d","description":"A community post created for pagination tests.","location":"West End","category":"OTHER","type":"REQUEST"}
+                    """.formatted(index);
+            mockMvc.perform(post("/api/posts").header("Authorization", "Bearer " + token)
+                            .contentType(MediaType.APPLICATION_JSON).content(body))
+                    .andExpect(status().isCreated());
+        }
+
+        mockMvc.perform(get("/api/posts").header("Authorization", "Bearer " + token)
+                        .param("search", "pagination suite").param("category", "OTHER")
+                        .param("page", "0").param("size", "5"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content", hasSize(5)))
+                .andExpect(jsonPath("$.page").value(0))
+                .andExpect(jsonPath("$.size").value(5))
+                .andExpect(jsonPath("$.totalElements").value(12))
+                .andExpect(jsonPath("$.totalPages").value(3))
+                .andExpect(jsonPath("$.first").value(true))
+                .andExpect(jsonPath("$.last").value(false));
+
+        mockMvc.perform(get("/api/posts").header("Authorization", "Bearer " + token)
+                        .param("search", "pagination suite").param("page", "2").param("size", "5"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content", hasSize(2)))
+                .andExpect(jsonPath("$.last").value(true));
+
+        mockMvc.perform(get("/api/posts").header("Authorization", "Bearer " + token).param("page", "-1"))
+                .andExpect(status().isBadRequest());
+        mockMvc.perform(get("/api/posts").header("Authorization", "Bearer " + token).param("size", "51"))
+                .andExpect(status().isBadRequest());
     }
 
 }
