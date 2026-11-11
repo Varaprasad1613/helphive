@@ -9,6 +9,7 @@ import com.helphive.api.post.PostStatus;
 import com.helphive.api.user.AppUser;
 import com.helphive.api.user.AppUserRepository;
 import java.util.List;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -19,9 +20,11 @@ public class HelpResponseService {
     private final HelpResponseRepository responses;
     private final HelpPostRepository posts;
     private final AppUserRepository users;
+    private final ApplicationEventPublisher events;
 
-    public HelpResponseService(HelpResponseRepository responses, HelpPostRepository posts, AppUserRepository users) {
-        this.responses = responses; this.posts = posts; this.users = users;
+    public HelpResponseService(HelpResponseRepository responses, HelpPostRepository posts, AppUserRepository users,
+                               ApplicationEventPublisher events) {
+        this.responses = responses; this.posts = posts; this.users = users; this.events = events;
     }
 
     @Transactional
@@ -36,7 +39,10 @@ public class HelpResponseService {
                 .orElseThrow(() -> new ResourceNotFoundException("Your account was not found"));
         HelpResponse response = new HelpResponse();
         response.setPost(post); response.setResponder(responder); response.setMessage(request.message().strip());
-        return HelpResponseView.from(responses.save(response), principal.id());
+        HelpResponse saved = responses.save(response);
+        events.publishEvent(new ResponseNotificationEvent(
+                saved.getId(), post.getOwner().getEmail(), ResponseNotificationType.NEW_RESPONSE));
+        return HelpResponseView.from(saved, principal.id());
     }
 
     public List<HelpResponseView> sent(AuthenticatedUser principal) {
@@ -58,13 +64,21 @@ public class HelpResponseService {
         if (response.getStatus() != ResponseStatus.PENDING)
             throw new ConflictException("This response has already been reviewed");
         response.setStatus(status);
+        List<HelpResponse> automaticallyDeclined = List.of();
         if (status == ResponseStatus.ACCEPTED) {
             response.getPost().setStatus(PostStatus.IN_PROGRESS);
-            responses.findByPostId(response.getPost().getId()).stream()
+            automaticallyDeclined = responses.findByPostId(response.getPost().getId()).stream()
                     .filter(other -> !other.getId().equals(id) && other.getStatus() == ResponseStatus.PENDING)
-                    .forEach(other -> other.setStatus(ResponseStatus.DECLINED));
+                    .peek(other -> other.setStatus(ResponseStatus.DECLINED))
+                    .toList();
+            responses.saveAll(automaticallyDeclined);
         }
-        return HelpResponseView.from(responses.save(response), principal.id());
+        HelpResponse saved = responses.save(response);
+        events.publishEvent(new ResponseNotificationEvent(
+                saved.getId(), saved.getResponder().getEmail(), notificationType(status)));
+        automaticallyDeclined.forEach(declined -> events.publishEvent(new ResponseNotificationEvent(
+                declined.getId(), declined.getResponder().getEmail(), ResponseNotificationType.RESPONSE_DECLINED)));
+        return HelpResponseView.from(saved, principal.id());
     }
 
     @Transactional
@@ -82,5 +96,13 @@ public class HelpResponseService {
     }
     private HelpResponse requireResponse(Long id) {
         return responses.findById(id).orElseThrow(() -> new ResourceNotFoundException("Response " + id + " was not found"));
+    }
+
+    private ResponseNotificationType notificationType(ResponseStatus status) {
+        return switch (status) {
+            case ACCEPTED -> ResponseNotificationType.RESPONSE_ACCEPTED;
+            case DECLINED -> ResponseNotificationType.RESPONSE_DECLINED;
+            case PENDING -> throw new ConflictException("A response cannot be returned to pending");
+        };
     }
 }

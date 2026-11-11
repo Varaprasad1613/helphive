@@ -22,7 +22,7 @@ public class MailService {
     }
     public boolean isEnabled() { return enabled; }
     public void send(String to, String subject, String text) {
-        if (!enabled) { log.info("Mail disabled. Intended recipient: {}; subject: {}; content: {}", to, subject, text); return; }
+        if (!enabled) { log.warn("Mail delivery is disabled. Message with subject '{}' was not sent", subject); return; }
         JavaMailSender sender = senderProvider.getIfAvailable();
         if (sender == null) throw new IllegalStateException("Mail is enabled but SMTP is not configured");
         SimpleMailMessage message = new SimpleMailMessage();
