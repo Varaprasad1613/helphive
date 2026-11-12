@@ -200,7 +200,7 @@ public class ChatService {
         requireParticipant(conversation, principal.id());
         Long peerId = peerId(conversation, principal.id());
         requireNotBlocked(principal.id(), peerId);
-        if (input.ciphertext().length() < 24 || input.iv().length() < 12) {
+        if (input.ciphertext().length() < 23 || input.iv().length() < 12) {
             throw new ConflictException("Message ciphertext or encryption nonce is invalid");
         }
 

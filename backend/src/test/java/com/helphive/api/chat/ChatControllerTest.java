@@ -9,6 +9,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import java.util.Base64;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -84,11 +85,19 @@ class ChatControllerTest {
                 .andExpect(jsonPath("$.ciphertext").value(encryptedMessage))
                 .andReturn().getResponse().getContentAsString();
         org.junit.jupiter.api.Assertions.assertFalse(sent.contains("plaintext-message"));
+        String oneCharacterCiphertext = Base64.getUrlEncoder().withoutPadding().encodeToString(new byte[17]);
+        mockMvc.perform(post("/api/chat/conversations/{id}/messages", conversationId)
+                        .header("Authorization", bearer(senderToken))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"ciphertext\":\"" + oneCharacterCiphertext + "\",\"iv\":\"YWJjZGVmZ2hpamts\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.ciphertext").value(oneCharacterCiphertext));
 
         mockMvc.perform(get("/api/chat/conversations/{id}/messages", conversationId)
                         .header("Authorization", bearer(ownerToken)))
-                .andExpect(status().isOk()).andExpect(jsonPath("$", hasSize(1)))
-                .andExpect(jsonPath("$[0].ciphertext").value(encryptedMessage));
+                .andExpect(status().isOk()).andExpect(jsonPath("$", hasSize(2)))
+                .andExpect(jsonPath("$[0].ciphertext").value(encryptedMessage))
+                .andExpect(jsonPath("$[1].ciphertext").value(oneCharacterCiphertext));
         mockMvc.perform(get("/api/chat/conversations/{id}/messages", conversationId)
                         .header("Authorization", bearer(outsiderToken)))
                 .andExpect(status().isForbidden());
