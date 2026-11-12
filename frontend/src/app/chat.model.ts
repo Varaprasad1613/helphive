@@ -37,6 +37,11 @@ export interface EncryptedChatMessage {
   createdAt: string;
 }
 
+export interface ChatNotificationSummary {
+  unreadMessages: number;
+  pendingRequests: number;
+}
+
 export interface ChatMessage extends EncryptedChatMessage {
   plaintext: string;
 }

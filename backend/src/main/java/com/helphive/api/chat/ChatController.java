@@ -77,10 +77,22 @@ public class ChatController {
         return service.messages(id, principal);
     }
 
+    @PostMapping("/conversations/{id}/read")
+    public ResponseEntity<Void> markRead(@PathVariable Long id, @Valid @RequestBody ChatReadRequest request,
+                                         @AuthenticationPrincipal AuthenticatedUser principal) {
+        service.markRead(id, request, principal);
+        return ResponseEntity.noContent().build();
+    }
+
     @PostMapping("/conversations/{id}/messages")
     public ChatMessageView send(@PathVariable Long id, @Valid @RequestBody ChatMessageCreate request,
                                 @AuthenticationPrincipal AuthenticatedUser principal) {
         return service.send(id, request, principal);
+    }
+
+    @GetMapping("/notifications")
+    public ChatNotificationSummary notifications(@AuthenticationPrincipal AuthenticatedUser principal) {
+        return service.notifications(principal);
     }
 
     @PatchMapping("/conversations/{id}/archive")
