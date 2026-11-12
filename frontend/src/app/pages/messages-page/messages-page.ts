@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { firstValueFrom } from 'rxjs';
 import { AuthService } from '../../auth.service';
 import { ChatCryptoService } from '../../chat-crypto.service';
+import { ChatNotificationsService } from '../../chat-notifications.service';
 import { ChatService } from '../../chat.service';
 import { ChatBlock, ChatConversation, ChatKeyRecord, ChatMessage, ChatRequest } from '../../chat.model';
 
@@ -19,6 +20,7 @@ type SetupState = 'loading' | 'setup' | 'confirm' | 'unlock' | 'ready' | 'error'
 export class MessagesPage implements OnDestroy {
   private readonly service = inject(ChatService);
   private readonly crypto = inject(ChatCryptoService);
+  private readonly chatNotifications = inject(ChatNotificationsService);
   readonly auth = inject(AuthService);
 
   readonly state = signal<SetupState>('loading');
@@ -129,6 +131,7 @@ export class MessagesPage implements OnDestroy {
       ));
       this.show('Chat request accepted. Messages are end-to-end encrypted.');
       await this.loadData(false);
+      await this.chatNotifications.refresh();
     } catch (error) {
       this.error.set(error instanceof Error ? error.message : 'Could not accept this chat request.');
     } finally {
@@ -146,6 +149,7 @@ export class MessagesPage implements OnDestroy {
     try {
       await firstValueFrom(this.service.cancelRequest(request.id));
       await this.loadData(false);
+      await this.chatNotifications.refresh();
     } catch (error) {
       this.error.set(error instanceof Error ? error.message : 'Could not cancel this chat request.');
     } finally {
@@ -208,6 +212,7 @@ export class MessagesPage implements OnDestroy {
       this.show(`${conversation.peerName} was blocked.`);
       await this.loadData(false);
       this.tab.set('blocked');
+      await this.chatNotifications.refresh();
     } catch (error) {
       this.error.set(error instanceof Error ? error.message : 'Could not block this member.');
     } finally {
@@ -221,6 +226,7 @@ export class MessagesPage implements OnDestroy {
     try {
       await firstValueFrom(this.service.unblock(user.userId));
       await this.loadData(false);
+      await this.chatNotifications.refresh();
     } catch (error) {
       this.error.set(error instanceof Error ? error.message : 'Could not unblock this member.');
     } finally {
@@ -328,7 +334,18 @@ export class MessagesPage implements OnDestroy {
         ...message,
         plaintext: await this.crypto.decryptMessage(conversation.id, key, message),
       })));
-      if (this.active()?.id === conversation.id) this.messages.set(decrypted);
+      if (this.active()?.id === conversation.id) {
+        const previousLastId = this.messages().at(-1)?.id ?? 0;
+        this.messages.set(decrypted);
+        const latest = decrypted.at(-1);
+        if (latest && latest.id > previousLastId) {
+          try {
+            await this.chatNotifications.markConversationRead(conversation.id, latest.id);
+          } catch {
+            this.error.set('Messages loaded, but the unread status could not be updated. Please try again.');
+          }
+        }
+      }
     } catch (error) {
       this.error.set(error instanceof Error
         ? error.message
@@ -343,6 +360,7 @@ export class MessagesPage implements OnDestroy {
       await firstValueFrom(this.service.decideRequest(request.id, accept));
       this.show(accept ? 'Chat request accepted.' : 'Chat request declined.');
       await this.loadData(false);
+      await this.chatNotifications.refresh();
     } catch (error) {
       this.error.set(error instanceof Error ? error.message : 'Could not update this chat request.');
     } finally {

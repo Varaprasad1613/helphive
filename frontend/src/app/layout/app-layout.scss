@@ -5,6 +5,8 @@
 nav { display: flex; align-items: center; gap: 22px; margin: 0 auto; }
 nav a { padding: 28px 0 24px; border-bottom: 3px solid transparent; color: var(--muted); font-size: 13px; font-weight: 700; }
 nav a.active { color: var(--green); border-color: var(--coral); }
+.messages-link { position: relative; }
+.notification-badge { display: inline-grid; min-width: 18px; height: 18px; margin-left: 5px; padding: 0 5px; place-items: center; border-radius: 999px; background: var(--coral); color: #2e211e; font-size: 10px; font-weight: 800; line-height: 1; }
 .mobile-menu { display: none; position: relative; }.mobile-menu summary { cursor: pointer; font-size: 13px; font-weight: 800; list-style: none; }.mobile-menu summary::-webkit-details-marker { display: none; }.mobile-menu nav { position: absolute; top: 34px; right: 0; z-index: 30; min-width: 190px; padding: 8px; border: 1px solid var(--line); border-radius: 9px; background: white; box-shadow: 0 12px 30px rgba(23,45,40,.14); }.mobile-menu nav a { display: block; padding: 11px 12px; border: 0; border-radius: 5px; }.mobile-menu nav a.active { background: #eef5f1; }
 .header-actions { display: flex; align-items: center; gap: 10px; }
 .account-chip { display: flex; align-items: center; gap: 7px; font-size: 12px; font-weight: 700; }

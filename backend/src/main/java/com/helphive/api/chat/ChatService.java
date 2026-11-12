@@ -195,6 +195,50 @@ public class ChatService {
     }
 
     @Transactional
+    public void markRead(Long conversationId, ChatReadRequest request, AuthenticatedUser principal) {
+        ChatConversation conversation = requireConversation(conversationId);
+        requireParticipant(conversation, principal.id());
+        ChatMessage message = messages.findByIdAndConversationId(request.messageId(), conversationId)
+                .orElseThrow(() -> new ResourceNotFoundException("Chat message was not found"));
+        if (conversation.getRequest().getRequester().getId().equals(principal.id())) {
+            if (conversation.getRequesterLastReadMessageId() == null
+                    || request.messageId() > conversation.getRequesterLastReadMessageId()) {
+                conversation.setRequesterLastReadMessageId(message.getId());
+            }
+        } else if (conversation.getRecipientLastReadMessageId() == null
+                || request.messageId() > conversation.getRecipientLastReadMessageId()) {
+            conversation.setRecipientLastReadMessageId(message.getId());
+        }
+    }
+
+    public ChatNotificationSummary notifications(AuthenticatedUser principal) {
+        long unreadMessages = 0;
+        for (ChatConversation conversation : conversations.findAllByRequestRequesterIdOrRequestRecipientIdOrderByUpdatedAtDesc(
+                principal.id(), principal.id())) {
+            if (isBlocked(conversation.getRequest().getRequester().getId(),
+                    conversation.getRequest().getRecipient().getId())) {
+                continue;
+            }
+            boolean requester = conversation.getRequest().getRequester().getId().equals(principal.id());
+            Long peerId = requester
+                    ? conversation.getRequest().getRecipient().getId()
+                    : conversation.getRequest().getRequester().getId();
+            Long lastReadMessageId = requester
+                    ? conversation.getRequesterLastReadMessageId()
+                    : conversation.getRecipientLastReadMessageId();
+            unreadMessages += messages.countByConversationIdAndSenderIdAndIdGreaterThan(
+                    conversation.getId(), peerId, lastReadMessageId == null ? 0L : lastReadMessageId);
+        }
+        long pendingRequests = requests.findByRequesterIdOrRecipientIdOrderByUpdatedAtDesc(
+                        principal.id(), principal.id()).stream()
+                .filter(request -> request.getRecipient().getId().equals(principal.id()))
+                .filter(request -> request.getStatus() == ChatRequestStatus.PENDING)
+                .filter(request -> !isBlocked(request.getRequester().getId(), request.getRecipient().getId()))
+                .count();
+        return new ChatNotificationSummary(unreadMessages, pendingRequests);
+    }
+
+    @Transactional
     public ChatMessageView send(Long conversationId, ChatMessageCreate input, AuthenticatedUser principal) {
         ChatConversation conversation = requireConversation(conversationId);
         requireParticipant(conversation, principal.id());

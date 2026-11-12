@@ -58,6 +58,12 @@ class ChatControllerTest {
 
         mockMvc.perform(get("/api/chat/requests").header("Authorization", bearer(ownerToken)))
                 .andExpect(status().isOk()).andExpect(jsonPath("$", hasSize(1)));
+        mockMvc.perform(get("/api/chat/notifications").header("Authorization", bearer(ownerToken)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.unreadMessages").value(0))
+                .andExpect(jsonPath("$.pendingRequests").value(1));
+        mockMvc.perform(get("/api/chat/notifications").header("Authorization", bearer(senderToken)))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.pendingRequests").value(0));
         mockMvc.perform(get("/api/chat/conversations").header("Authorization", bearer(senderToken)))
                 .andExpect(status().isOk()).andExpect(jsonPath("$", hasSize(0)));
         mockMvc.perform(get("/api/chat/conversations/999999/messages").header("Authorization", bearer(senderToken)))
@@ -69,6 +75,8 @@ class ChatControllerTest {
         mockMvc.perform(patch("/api/chat/requests/{id}", requestId).header("Authorization", bearer(ownerToken))
                         .contentType(MediaType.APPLICATION_JSON).content(accept))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.status").value("ACCEPTED"));
+        mockMvc.perform(get("/api/chat/notifications").header("Authorization", bearer(ownerToken)))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.pendingRequests").value(0));
 
         String requesterConversations = mockMvc.perform(get("/api/chat/conversations")
                         .header("Authorization", bearer(senderToken)))
@@ -86,18 +94,38 @@ class ChatControllerTest {
                 .andReturn().getResponse().getContentAsString();
         org.junit.jupiter.api.Assertions.assertFalse(sent.contains("plaintext-message"));
         String oneCharacterCiphertext = Base64.getUrlEncoder().withoutPadding().encodeToString(new byte[17]);
-        mockMvc.perform(post("/api/chat/conversations/{id}/messages", conversationId)
+        String shortMessageResponse = mockMvc.perform(post("/api/chat/conversations/{id}/messages", conversationId)
                         .header("Authorization", bearer(senderToken))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"ciphertext\":\"" + oneCharacterCiphertext + "\",\"iv\":\"YWJjZGVmZ2hpamts\"}"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.ciphertext").value(oneCharacterCiphertext));
+                .andExpect(jsonPath("$.ciphertext").value(oneCharacterCiphertext))
+                .andReturn().getResponse().getContentAsString();
+        long latestMessageId = number(shortMessageResponse, "id");
 
         mockMvc.perform(get("/api/chat/conversations/{id}/messages", conversationId)
                         .header("Authorization", bearer(ownerToken)))
                 .andExpect(status().isOk()).andExpect(jsonPath("$", hasSize(2)))
                 .andExpect(jsonPath("$[0].ciphertext").value(encryptedMessage))
                 .andExpect(jsonPath("$[1].ciphertext").value(oneCharacterCiphertext));
+        mockMvc.perform(get("/api/chat/notifications").header("Authorization", bearer(ownerToken)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.unreadMessages").value(2))
+                .andExpect(jsonPath("$.pendingRequests").value(0));
+        mockMvc.perform(get("/api/chat/notifications").header("Authorization", bearer(senderToken)))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.unreadMessages").value(0));
+        mockMvc.perform(post("/api/chat/conversations/{id}/read", conversationId)
+                        .header("Authorization", bearer(ownerToken))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"messageId\":" + latestMessageId + "}"))
+                .andExpect(status().isNoContent());
+        mockMvc.perform(get("/api/chat/notifications").header("Authorization", bearer(ownerToken)))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.unreadMessages").value(0));
+        mockMvc.perform(post("/api/chat/conversations/{id}/read", conversationId)
+                        .header("Authorization", bearer(outsiderToken))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"messageId\":" + latestMessageId + "}"))
+                .andExpect(status().isForbidden());
         mockMvc.perform(get("/api/chat/conversations/{id}/messages", conversationId)
                         .header("Authorization", bearer(outsiderToken)))
                 .andExpect(status().isForbidden());

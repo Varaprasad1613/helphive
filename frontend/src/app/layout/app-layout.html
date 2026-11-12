@@ -6,7 +6,14 @@
     <a routerLink="/community" routerLinkActive="active">Community</a>
     <a routerLink="/my-posts" routerLinkActive="active">My posts</a>
     <a routerLink="/my-responses" routerLinkActive="active">My responses</a>
-    <a routerLink="/messages" routerLinkActive="active">Messages</a>
+    <a class="messages-link" routerLink="/messages" routerLinkActive="active"
+      [attr.aria-label]="chatNotifications.total() ? 'Messages, ' + chatNotifications.total() + ' notifications' : 'Messages'"
+      [title]="chatNotifications.error() || 'Unread messages and pending chat requests'">
+      Messages
+      @if (chatNotifications.total() > 0) {
+        <span class="notification-badge">{{ chatNotifications.total() > 99 ? '99+' : chatNotifications.total() }}</span>
+      }
+    </a>
     <a routerLink="/account" routerLinkActive="active">My account</a>
     @if (auth.user()?.role === 'ADMIN') { <a routerLink="/admin" routerLinkActive="active">Admin</a> }
   </nav>
@@ -16,7 +23,14 @@
       <a routerLink="/community" routerLinkActive="active">Community</a>
       <a routerLink="/my-posts" routerLinkActive="active">My posts</a>
       <a routerLink="/my-responses" routerLinkActive="active">My responses</a>
-      <a routerLink="/messages" routerLinkActive="active">Messages</a>
+      <a class="messages-link" routerLink="/messages" routerLinkActive="active"
+        [attr.aria-label]="chatNotifications.total() ? 'Messages, ' + chatNotifications.total() + ' notifications' : 'Messages'"
+        [title]="chatNotifications.error() || 'Unread messages and pending chat requests'">
+        Messages
+        @if (chatNotifications.total() > 0) {
+          <span class="notification-badge">{{ chatNotifications.total() > 99 ? '99+' : chatNotifications.total() }}</span>
+        }
+      </a>
       <a routerLink="/account" routerLinkActive="active">My account</a>
       @if (auth.user()?.role === 'ADMIN') { <a routerLink="/admin" routerLinkActive="active">Admin</a> }
     </nav>

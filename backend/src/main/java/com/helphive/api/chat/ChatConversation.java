@@ -34,6 +34,9 @@ class ChatConversation {
     private Instant requesterArchivedAt;
     private Instant recipientArchivedAt;
 
+    private Long requesterLastReadMessageId;
+    private Long recipientLastReadMessageId;
+
     @Column(nullable = false)
     private Instant createdAt;
 
@@ -62,6 +65,10 @@ class ChatConversation {
     void setRequesterArchivedAt(Instant value) { requesterArchivedAt = value; }
     Instant getRecipientArchivedAt() { return recipientArchivedAt; }
     void setRecipientArchivedAt(Instant value) { recipientArchivedAt = value; }
+    Long getRequesterLastReadMessageId() { return requesterLastReadMessageId; }
+    void setRequesterLastReadMessageId(Long value) { requesterLastReadMessageId = value; }
+    Long getRecipientLastReadMessageId() { return recipientLastReadMessageId; }
+    void setRecipientLastReadMessageId(Long value) { recipientLastReadMessageId = value; }
     Instant getCreatedAt() { return createdAt; }
     Instant getUpdatedAt() { return updatedAt; }
     void touch() { updatedAt = Instant.now(); }

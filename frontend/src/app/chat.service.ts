@@ -2,7 +2,8 @@ import { HttpClient } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import {
-  ChatBlock, ChatConversation, ChatKeyRecord, ChatKeyUpload, ChatReport, ChatRequest, EncryptedChatMessage,
+  ChatBlock, ChatConversation, ChatKeyRecord, ChatKeyUpload, ChatNotificationSummary, ChatReport, ChatRequest,
+  EncryptedChatMessage,
 } from './chat.model';
 
 @Injectable({ providedIn: 'root' })
@@ -24,6 +25,10 @@ export class ChatService {
 
   requests(): Observable<ChatRequest[]> {
     return this.http.get<ChatRequest[]>(`${this.base}/requests`);
+  }
+
+  notifications(): Observable<ChatNotificationSummary> {
+    return this.http.get<ChatNotificationSummary>(`${this.base}/notifications`);
   }
 
   createRequest(recipientId: number, postId: number | null, responseId: number | null): Observable<ChatRequest> {
@@ -51,6 +56,10 @@ export class ChatService {
 
   messages(conversationId: number): Observable<EncryptedChatMessage[]> {
     return this.http.get<EncryptedChatMessage[]>(`${this.base}/conversations/${conversationId}/messages`);
+  }
+
+  markRead(conversationId: number, messageId: number): Observable<void> {
+    return this.http.post<void>(`${this.base}/conversations/${conversationId}/read`, { messageId });
   }
 
   sendMessage(conversationId: number, ciphertext: string, iv: string): Observable<EncryptedChatMessage> {
