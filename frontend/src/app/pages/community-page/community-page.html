@@ -84,7 +84,8 @@
         @for (post of posts(); track post.id) {
           <article class="post-card" (click)="view(post)" tabindex="0" (keydown.enter)="view(post)">
             <div class="card-topline">
-              <span class="type-tag" [class.offer]="post.type === 'OFFER' && post.status !== 'COMPLETED'" [class.done]="post.status === 'COMPLETED'">{{ post.status === 'COMPLETED' ? 'Marked as done' : post.type === 'REQUEST' ? 'Needs a hand' : 'Happy to help' }}</span>
+              <span class="type-tag" [class.offer]="post.type === 'OFFER' && post.status !== 'COMPLETED'" [class.done]="post.status === 'COMPLETED'">{{ post.type === 'REQUEST' ? 'Needs a hand' : 'Happy to help' }}</span>
+              <span class="status-label">{{ statusLabel(post.status) }}</span>
               <span class="status-dot" [class.progress]="post.status === 'IN_PROGRESS'" [class.done]="post.status === 'COMPLETED'"></span>
             </div>
             <div class="category-icon">{{ categoryIcon(post.category) }}</div>
@@ -164,7 +165,7 @@
       <span class="type-tag" [class.offer]="post.type === 'OFFER'">{{ post.type }}</span>
       <h2 id="detail-title">{{ post.title }}</h2>
       <p class="detail-description">{{ post.description }}</p>
-      <dl><div><dt>Posted by</dt><dd>{{ post.authorName }}</dd></div><div><dt>Location</dt><dd>{{ post.location }}</dd></div><div><dt>Category</dt><dd>{{ categoryLabel(post.category) }}</dd></div><div><dt>Status</dt><dd>{{ post.status.replace('_', ' ') }}</dd></div></dl>
+      <dl><div><dt>Posted by</dt><dd>{{ post.authorName }}</dd></div><div><dt>Location</dt><dd>{{ post.location }}</dd></div><div><dt>Category</dt><dd>{{ categoryLabel(post.category) }}</dd></div><div><dt>Status</dt><dd>{{ statusLabel(post.status) }}</dd></div></dl>
       @if (post.ownedByCurrentUser && post.contact) {
         <a class="contact-box" [href]="'mailto:' + post.contact"><span>✉</span><div><small>Contact {{ post.authorName.split(' ')[0] }}</small><b>{{ post.contact }}</b></div><strong>↗</strong></a>
       } @else if (post.ownerId === null) {
@@ -189,6 +190,61 @@
         </div>
         }
       }
+
+      <section class="discussion-section" aria-labelledby="discussion-title">
+        <div class="discussion-heading">
+          <div><span class="eyebrow"><span></span> Progress updates</span><h3 id="discussion-title">Comments &amp; notes</h3></div>
+          @if (post.status === 'IN_PROGRESS') { <span class="discussion-state open">Discussion open</span> }
+          @if (post.status === 'COMPLETED') { <span class="discussion-state">Read only</span> }
+        </div>
+        @if (post.status === 'OPEN') { <p class="discussion-hint">Comments open when this post moves in progress.</p> }
+        @if (discussionLoading()) { <p class="discussion-hint">Loading discussion…</p> }
+        @else if (discussionError()) {
+          <div class="discussion-error"><p>{{ discussionError() }}</p><button class="text-button" (click)="loadDiscussion(post.id)">Try again</button></div>
+        } @else if (discussion(); as thread) {
+          @if (discussionThreads().length === 0) { <p class="discussion-hint">No progress updates yet.</p> }
+          <div class="discussion-list">
+            @for (item of discussionThreads(); track item.entry.id) {
+              <article class="discussion-entry" [class.progress-note]="item.entry.type === 'NOTE'">
+                <header><strong>{{ item.entry.authorName }}</strong><span>{{ item.entry.type === 'NOTE' ? 'Progress note' : 'Comment' }}</span><time>{{ item.entry.createdAt | date:'medium' }}</time></header>
+                <p>{{ item.entry.content }}</p>
+                @for (reply of item.replies; track reply.id) {
+                  <div class="discussion-reply">
+                    <header><strong>{{ reply.authorName }}</strong><span>Reply</span><time>{{ reply.createdAt | date:'medium' }}</time></header>
+                    <p>{{ reply.content }}</p>
+                  </div>
+                }
+                @if (item.entry.type === 'NOTE' && thread.commentsOpen) {
+                  @if (replyTargetId() === item.entry.id) {
+                    <div class="discussion-compose reply-compose">
+                      <textarea rows="2" maxlength="1000" aria-label="Reply to progress note" placeholder="Comment on this note…" [value]="replyMessage()" (input)="replyMessage.set($any($event.target).value)"></textarea>
+                      <div><button class="text-button" (click)="replyTargetId.set(null)">Cancel</button><button class="button button-dark button-small" [disabled]="updateSaving()" (click)="addUpdate(post, 'COMMENT', item.entry.id)">{{ updateSaving() ? 'Posting…' : 'Reply' }}</button></div>
+                    </div>
+                  } @else {
+                    <button class="text-button discussion-reply-action" (click)="startReply(item.entry)">Reply to note</button>
+                  }
+                }
+              </article>
+            }
+          </div>
+          @if (thread.commentsOpen) {
+            <div class="discussion-compose">
+              <label for="post-comment">Add a comment</label>
+              <textarea id="post-comment" rows="3" maxlength="1000" placeholder="Share a comment or suggestion…" [value]="commentMessage()" (input)="commentMessage.set($any($event.target).value)"></textarea>
+              <button class="button button-dark" [disabled]="updateSaving()" (click)="addUpdate(post, 'COMMENT')">{{ updateSaving() ? 'Posting…' : 'Post comment' }}</button>
+            </div>
+            @if (thread.canPostNote) {
+              <div class="discussion-compose note-compose">
+                <label for="progress-note">Share a progress note</label>
+                <textarea id="progress-note" rows="3" maxlength="1000" placeholder="Let the community know how things are going…" [value]="noteMessage()" (input)="noteMessage.set($any($event.target).value)"></textarea>
+                <button class="button button-primary" [disabled]="updateSaving()" (click)="addUpdate(post, 'NOTE')">{{ updateSaving() ? 'Posting…' : 'Post progress note' }}</button>
+              </div>
+            }
+          } @else if (post.status === 'COMPLETED') {
+            <p class="discussion-hint">This post is complete. Past comments and notes remain available, but new updates are closed.</p>
+          }
+        }
+      </section>
     </section>
   </div>
 }

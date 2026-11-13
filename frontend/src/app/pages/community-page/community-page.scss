@@ -1,0 +1,26 @@
+.discussion-section { margin-top: 24px; padding-top: 22px; border-top: 1px solid var(--line); }
+.discussion-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.discussion-heading .eyebrow { font-size: 9px; }
+.discussion-heading h3 { margin: 6px 0 0; font: 800 20px 'Manrope'; }
+.discussion-state { padding: 6px 9px; border-radius: 999px; background: var(--cream); color: var(--muted); font-size: 9px; font-weight: 700; text-transform: uppercase; }
+.discussion-state.open { background: #e7f2ec; color: var(--green); }
+.discussion-hint,.discussion-error { margin: 12px 0; color: var(--muted); font-size: 12px; line-height: 1.6; }
+.discussion-error p { margin: 0 0 4px; }
+.discussion-list { display: grid; gap: 10px; margin-top: 14px; }
+.discussion-entry { padding: 13px 14px; border: 1px solid var(--line); border-radius: 9px; background: white; }
+.discussion-entry.progress-note { border-left: 3px solid #d6ad36; }
+.discussion-entry header,.discussion-reply header { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.discussion-entry header strong,.discussion-reply header strong { font-size: 11px; }
+.discussion-entry header span,.discussion-reply header span { color: var(--green); font-size: 9px; font-weight: 800; text-transform: uppercase; }
+.discussion-entry time,.discussion-reply time { margin-left: auto; color: var(--muted); font-size: 9px; }
+.discussion-entry > p,.discussion-reply > p { margin: 8px 0 0; color: var(--ink); font-size: 12px; line-height: 1.6; white-space: pre-wrap; overflow-wrap: anywhere; }
+.discussion-reply { margin: 12px 0 0 14px; padding: 11px 12px; border-left: 2px solid #dce5df; background: #f7f8f4; border-radius: 0 7px 7px 0; }
+.discussion-compose { display: grid; gap: 8px; margin-top: 14px; }
+.discussion-compose label { font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: .7px; }
+.discussion-compose textarea { width: 100%; padding: 11px 12px; border: 1px solid var(--line); border-radius: 7px; background: white; resize: vertical; outline: none; font-size: 12px; }
+.discussion-compose textarea:focus { border-color: var(--green); box-shadow: 0 0 0 3px rgba(47,102,85,.1); }
+.discussion-compose > .button { justify-self: end; min-height: 38px; }
+.note-compose { margin-top: 18px; padding-top: 16px; border-top: 1px dashed var(--line); }
+.reply-compose > div { display: flex; justify-content: flex-end; gap: 10px; }
+.discussion-reply-action { margin-top: 10px; font-size: 10px; }
+.status-label { margin-left: auto; color: var(--muted); font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; }

@@ -187,6 +187,71 @@ class HelpPostControllerTest {
     }
 
     @Test
+    void enablesProgressDiscussionAndKeepsCompletedHistoryReadOnly() throws Exception {
+        String ownerToken = registerAndLogin("Discussion Owner", "discussion-owner@example.com");
+        String helperToken = registerAndLogin("Accepted Helper", "discussion-helper@example.com");
+        String memberToken = registerAndLogin("Community Member", "discussion-member@example.com");
+        String postBody = """
+                {"title":"Need help with garden beds","description":"Looking for help preparing the neighborhood garden beds this weekend.","location":"Maple Park","category":"HOME_AND_GARDEN","type":"REQUEST"}
+                """;
+        String post = mockMvc.perform(post("/api/posts").header("Authorization", "Bearer " + ownerToken)
+                        .contentType(MediaType.APPLICATION_JSON).content(postBody))
+                .andExpect(status().isCreated()).andReturn().getResponse().getContentAsString();
+        long postId = Long.parseLong(post.replaceAll(".*\\\"id\\\":(\\d+).*", "$1"));
+
+        mockMvc.perform(get("/api/posts/{id}/updates", postId).header("Authorization", "Bearer " + memberToken))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.commentsOpen").value(false))
+                .andExpect(jsonPath("$.updates", hasSize(0)));
+        mockMvc.perform(post("/api/posts/{id}/updates", postId).header("Authorization", "Bearer " + memberToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"type\":\"COMMENT\",\"content\":\"I can bring some tools.\"}"))
+                .andExpect(status().isConflict());
+
+        String response = mockMvc.perform(post("/api/posts/{postId}/responses", postId)
+                        .header("Authorization", "Bearer " + helperToken).contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"message\":\"I can bring tools and help prepare the beds.\"}"))
+                .andExpect(status().isCreated()).andReturn().getResponse().getContentAsString();
+        long responseId = Long.parseLong(response.replaceAll(".*\\\"id\\\":(\\d+).*", "$1"));
+        mockMvc.perform(patch("/api/responses/{id}/status", responseId)
+                        .header("Authorization", "Bearer " + ownerToken).contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"status\":\"ACCEPTED\"}"))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(post("/api/posts/{id}/updates", postId).header("Authorization", "Bearer " + memberToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"type\":\"NOTE\",\"content\":\"The garden bed is ready.\"}"))
+                .andExpect(status().isForbidden());
+        String comment = mockMvc.perform(post("/api/posts/{id}/updates", postId)
+                        .header("Authorization", "Bearer " + memberToken).contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"type\":\"COMMENT\",\"content\":\"I can bring extra soil.\"}"))
+                .andExpect(status().isCreated()).andExpect(jsonPath("$.type").value("COMMENT"))
+                .andReturn().getResponse().getContentAsString();
+        String note = mockMvc.perform(post("/api/posts/{id}/updates", postId)
+                        .header("Authorization", "Bearer " + helperToken).contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"type\":\"NOTE\",\"content\":\"We finished preparing the first bed.\"}"))
+                .andExpect(status().isCreated()).andExpect(jsonPath("$.type").value("NOTE"))
+                .andReturn().getResponse().getContentAsString();
+        long noteId = Long.parseLong(note.replaceAll(".*\\\"id\\\":(\\d+).*", "$1"));
+
+        mockMvc.perform(post("/api/posts/{id}/updates", postId).header("Authorization", "Bearer " + memberToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"type\":\"COMMENT\",\"content\":\"Thanks for the update!\",\"parentId\":"
+                                + noteId + "}"))
+                .andExpect(status().isCreated()).andExpect(jsonPath("$.parentId").value(noteId));
+
+        mockMvc.perform(patch("/api/posts/{id}/status", postId).header("Authorization", "Bearer " + ownerToken)
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"status\":\"COMPLETED\"}"))
+                .andExpect(status().isOk());
+        mockMvc.perform(get("/api/posts/{id}/updates", postId).header("Authorization", "Bearer " + memberToken))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.commentsOpen").value(false))
+                .andExpect(jsonPath("$.updates", hasSize(3)));
+        mockMvc.perform(post("/api/posts/{id}/updates", postId).header("Authorization", "Bearer " + memberToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"type\":\"COMMENT\",\"content\":\"One last suggestion.\"}"))
+                .andExpect(status().isConflict());
+    }
+
+    @Test
     void filtersAndPaginatesCommunityPosts() throws Exception {
         String token = registerAndLogin("Pagination Member", "pagination-member@example.com");
         for (int index = 0; index < 12; index++) {

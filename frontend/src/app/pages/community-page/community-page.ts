@@ -8,12 +8,14 @@ import { HelpPostService } from '../../help-post.service';
 import { AuthService } from '../../auth.service';
 import { HelpResponseService } from '../../help-response.service';
 import { ChatService } from '../../chat.service';
+import { PostDiscussion, PostProgressUpdate, PostProgressUpdateType } from '../../post-discussion.model';
+import { PostDiscussionService } from '../../post-discussion.service';
 
 @Component({
   selector: 'app-community-page',
   imports: [ReactiveFormsModule, DatePipe],
   templateUrl: './community-page.html',
-  styleUrl: '../../app.scss',
+  styleUrls: ['../../app.scss', './community-page.scss'],
 })
 export class CommunityPage {
   private readonly service = inject(HelpPostService);
@@ -22,6 +24,7 @@ export class CommunityPage {
   private readonly route = inject(ActivatedRoute);
   private readonly responseService = inject(HelpResponseService);
   private readonly chatService = inject(ChatService);
+  private readonly discussionService = inject(PostDiscussionService);
   readonly auth = inject(AuthService);
 
   readonly posts = signal<HelpPost[]>([]);
@@ -32,6 +35,21 @@ export class CommunityPage {
   readonly toast = signal('');
   readonly responseMessage = signal('');
   readonly responding = signal(false);
+  readonly discussion = signal<PostDiscussion | null>(null);
+  readonly discussionLoading = signal(false);
+  readonly discussionError = signal('');
+  readonly updateSaving = signal(false);
+  readonly commentMessage = signal('');
+  readonly noteMessage = signal('');
+  readonly replyTargetId = signal<number | null>(null);
+  readonly replyMessage = signal('');
+  readonly discussionThreads = computed(() => {
+    const updates = this.discussion()?.updates ?? [];
+    return updates.filter(update => update.parentId === null).map(entry => ({
+      entry,
+      replies: updates.filter(update => update.parentId === entry.id),
+    }));
+  });
   readonly modalOpen = signal(false);
   readonly selectedPost = signal<HelpPost | null>(null);
   readonly editingId = signal<number | null>(null);
@@ -225,7 +243,65 @@ export class CommunityPage {
     });
   }
 
-  view(post: HelpPost): void { this.responseMessage.set(''); this.selectedPost.set(post); }
+  view(post: HelpPost): void {
+    this.responseMessage.set('');
+    this.selectedPost.set(post);
+    this.commentMessage.set('');
+    this.noteMessage.set('');
+    this.replyTargetId.set(null);
+    this.replyMessage.set('');
+    this.loadDiscussion(post.id);
+  }
+
+  loadDiscussion(postId: number): void {
+    this.discussionLoading.set(true);
+    this.discussionError.set('');
+    this.discussionService.get(postId).subscribe({
+      next: discussion => {
+        this.discussion.set(discussion);
+        this.discussionLoading.set(false);
+      },
+      error: () => {
+        this.discussionError.set('Could not load this post’s discussion.');
+        this.discussionLoading.set(false);
+      },
+    });
+  }
+
+  startReply(update: PostProgressUpdate): void {
+    this.replyTargetId.set(update.id);
+    this.replyMessage.set('');
+  }
+
+  addUpdate(post: HelpPost, type: PostProgressUpdateType, parentId: number | null = null): void {
+    const content = parentId !== null
+      ? this.replyMessage().trim()
+      : type === 'NOTE' ? this.noteMessage().trim() : this.commentMessage().trim();
+    if (!content) {
+      this.showToast('Write a message before posting');
+      return;
+    }
+
+    this.updateSaving.set(true);
+    this.discussionService.create(post.id, {
+      type,
+      content,
+      ...(parentId === null ? {} : { parentId }),
+    }).subscribe({
+      next: () => {
+        this.updateSaving.set(false);
+        this.commentMessage.set('');
+        this.noteMessage.set('');
+        this.replyMessage.set('');
+        this.replyTargetId.set(null);
+        this.loadDiscussion(post.id);
+      },
+      error: (response: HttpErrorResponse) => {
+        this.updateSaving.set(false);
+        this.showToast(response.error?.message ?? 'Could not post this update');
+      },
+    });
+  }
 
   sendResponse(post: HelpPost): void {
     const message = this.responseMessage().trim();
@@ -256,6 +332,7 @@ export class CommunityPage {
     this.service.updateStatus(post.id, next).subscribe({
       next: updated => {
         this.selectedPost.set(updated);
+        this.loadDiscussion(updated.id);
         this.showToast(next === 'IN_PROGRESS' ? 'Help is on the way' : 'Marked as completed');
         this.refresh();
       },
@@ -281,6 +358,11 @@ export class CommunityPage {
 
   categoryIcon(value: Category): string {
     return this.categories.find(category => category.value === value)?.icon ?? '•';
+  }
+
+  statusLabel(status: PostStatus): string {
+    if (status === 'IN_PROGRESS') return 'In progress';
+    return status === 'COMPLETED' ? 'Completed' : 'Open';
   }
 
   private restrictAccess(message: string): void {
