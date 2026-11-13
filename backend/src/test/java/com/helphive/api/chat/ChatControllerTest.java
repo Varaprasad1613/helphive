@@ -9,6 +9,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.helphive.api.CsrfTestSupport;
 import java.util.Base64;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
@@ -37,17 +38,17 @@ class ChatControllerTest {
         String postBody = """
                 {"title":"Chat test post","description":"A post used to test secure private chat requests.","location":"West End","category":"OTHER","type":"REQUEST"}
                 """;
-        String postResponse = mockMvc.perform(post("/api/posts").header("Authorization", bearer(ownerToken))
+        String postResponse = CsrfTestSupport.performWithCsrf(mockMvc, post("/api/posts").header("Authorization", bearer(ownerToken))
                         .contentType(MediaType.APPLICATION_JSON).content(postBody))
                 .andExpect(status().isCreated())
                 .andReturn().getResponse().getContentAsString();
         long postId = number(postResponse, "id");
-        mockMvc.perform(get("/api/posts/{id}", postId).header("Authorization", bearer(senderToken)))
+        CsrfTestSupport.performWithCsrf(mockMvc, get("/api/posts/{id}", postId).header("Authorization", bearer(senderToken)))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.contact").value(org.hamcrest.Matchers.nullValue()));
 
         String requestBody = "{\"recipientId\":" + userIdFrom(ownerToken)
                 + ",\"postId\":" + postId + ",\"responseId\":null}";
-        String requestResponse = mockMvc.perform(post("/api/chat/requests")
+        String requestResponse = CsrfTestSupport.performWithCsrf(mockMvc, post("/api/chat/requests")
                         .header("Authorization", bearer(senderToken))
                         .contentType(MediaType.APPLICATION_JSON).content(requestBody))
                 .andExpect(status().isOk())
@@ -56,29 +57,29 @@ class ChatControllerTest {
                 .andReturn().getResponse().getContentAsString();
         long requestId = number(requestResponse, "id");
 
-        mockMvc.perform(get("/api/chat/requests").header("Authorization", bearer(ownerToken)))
+        CsrfTestSupport.performWithCsrf(mockMvc, get("/api/chat/requests").header("Authorization", bearer(ownerToken)))
                 .andExpect(status().isOk()).andExpect(jsonPath("$", hasSize(1)));
-        mockMvc.perform(get("/api/chat/notifications").header("Authorization", bearer(ownerToken)))
+        CsrfTestSupport.performWithCsrf(mockMvc, get("/api/chat/notifications").header("Authorization", bearer(ownerToken)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.unreadMessages").value(0))
                 .andExpect(jsonPath("$.pendingRequests").value(1));
-        mockMvc.perform(get("/api/chat/notifications").header("Authorization", bearer(senderToken)))
+        CsrfTestSupport.performWithCsrf(mockMvc, get("/api/chat/notifications").header("Authorization", bearer(senderToken)))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.pendingRequests").value(0));
-        mockMvc.perform(get("/api/chat/conversations").header("Authorization", bearer(senderToken)))
+        CsrfTestSupport.performWithCsrf(mockMvc, get("/api/chat/conversations").header("Authorization", bearer(senderToken)))
                 .andExpect(status().isOk()).andExpect(jsonPath("$", hasSize(0)));
-        mockMvc.perform(get("/api/chat/conversations/999999/messages").header("Authorization", bearer(senderToken)))
+        CsrfTestSupport.performWithCsrf(mockMvc, get("/api/chat/conversations/999999/messages").header("Authorization", bearer(senderToken)))
                 .andExpect(status().isNotFound());
 
         String accept = """
                 {"accept":true,"requesterKeyEnvelope":"requester-envelope","recipientKeyEnvelope":"recipient-envelope"}
                 """;
-        mockMvc.perform(patch("/api/chat/requests/{id}", requestId).header("Authorization", bearer(ownerToken))
+        CsrfTestSupport.performWithCsrf(mockMvc, patch("/api/chat/requests/{id}", requestId).header("Authorization", bearer(ownerToken))
                         .contentType(MediaType.APPLICATION_JSON).content(accept))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.status").value("ACCEPTED"));
-        mockMvc.perform(get("/api/chat/notifications").header("Authorization", bearer(ownerToken)))
+        CsrfTestSupport.performWithCsrf(mockMvc, get("/api/chat/notifications").header("Authorization", bearer(ownerToken)))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.pendingRequests").value(0));
 
-        String requesterConversations = mockMvc.perform(get("/api/chat/conversations")
+        String requesterConversations = CsrfTestSupport.performWithCsrf(mockMvc, get("/api/chat/conversations")
                         .header("Authorization", bearer(senderToken)))
                 .andExpect(status().isOk()).andExpect(jsonPath("$", hasSize(1)))
                 .andExpect(jsonPath("$[0].encryptedKeyEnvelope").value("requester-envelope"))
@@ -86,7 +87,7 @@ class ChatControllerTest {
         long conversationId = number(requesterConversations, "id");
         String encryptedMessage = "Y2lwaGVydGV4dC1ub3QtcGxhaW50ZXh0";
         String sendBody = "{\"ciphertext\":\"" + encryptedMessage + "\",\"iv\":\"YWJjZGVmZ2hpamts\"}";
-        String sent = mockMvc.perform(post("/api/chat/conversations/{id}/messages", conversationId)
+        String sent = CsrfTestSupport.performWithCsrf(mockMvc, post("/api/chat/conversations/{id}/messages", conversationId)
                         .header("Authorization", bearer(senderToken))
                         .contentType(MediaType.APPLICATION_JSON).content(sendBody))
                 .andExpect(status().isOk())
@@ -94,7 +95,7 @@ class ChatControllerTest {
                 .andReturn().getResponse().getContentAsString();
         org.junit.jupiter.api.Assertions.assertFalse(sent.contains("plaintext-message"));
         String oneCharacterCiphertext = Base64.getUrlEncoder().withoutPadding().encodeToString(new byte[17]);
-        String shortMessageResponse = mockMvc.perform(post("/api/chat/conversations/{id}/messages", conversationId)
+        String shortMessageResponse = CsrfTestSupport.performWithCsrf(mockMvc, post("/api/chat/conversations/{id}/messages", conversationId)
                         .header("Authorization", bearer(senderToken))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"ciphertext\":\"" + oneCharacterCiphertext + "\",\"iv\":\"YWJjZGVmZ2hpamts\"}"))
@@ -103,63 +104,63 @@ class ChatControllerTest {
                 .andReturn().getResponse().getContentAsString();
         long latestMessageId = number(shortMessageResponse, "id");
 
-        mockMvc.perform(get("/api/chat/conversations/{id}/messages", conversationId)
+        CsrfTestSupport.performWithCsrf(mockMvc, get("/api/chat/conversations/{id}/messages", conversationId)
                         .header("Authorization", bearer(ownerToken)))
                 .andExpect(status().isOk()).andExpect(jsonPath("$", hasSize(2)))
                 .andExpect(jsonPath("$[0].ciphertext").value(encryptedMessage))
                 .andExpect(jsonPath("$[1].ciphertext").value(oneCharacterCiphertext));
-        mockMvc.perform(get("/api/chat/notifications").header("Authorization", bearer(ownerToken)))
+        CsrfTestSupport.performWithCsrf(mockMvc, get("/api/chat/notifications").header("Authorization", bearer(ownerToken)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.unreadMessages").value(2))
                 .andExpect(jsonPath("$.pendingRequests").value(0));
-        mockMvc.perform(get("/api/chat/notifications").header("Authorization", bearer(senderToken)))
+        CsrfTestSupport.performWithCsrf(mockMvc, get("/api/chat/notifications").header("Authorization", bearer(senderToken)))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.unreadMessages").value(0));
-        mockMvc.perform(post("/api/chat/conversations/{id}/read", conversationId)
+        CsrfTestSupport.performWithCsrf(mockMvc, post("/api/chat/conversations/{id}/read", conversationId)
                         .header("Authorization", bearer(ownerToken))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"messageId\":" + latestMessageId + "}"))
                 .andExpect(status().isNoContent());
-        mockMvc.perform(get("/api/chat/notifications").header("Authorization", bearer(ownerToken)))
+        CsrfTestSupport.performWithCsrf(mockMvc, get("/api/chat/notifications").header("Authorization", bearer(ownerToken)))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.unreadMessages").value(0));
-        mockMvc.perform(post("/api/chat/conversations/{id}/read", conversationId)
+        CsrfTestSupport.performWithCsrf(mockMvc, post("/api/chat/conversations/{id}/read", conversationId)
                         .header("Authorization", bearer(outsiderToken))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"messageId\":" + latestMessageId + "}"))
                 .andExpect(status().isForbidden());
-        mockMvc.perform(get("/api/chat/conversations/{id}/messages", conversationId)
+        CsrfTestSupport.performWithCsrf(mockMvc, get("/api/chat/conversations/{id}/messages", conversationId)
                         .header("Authorization", bearer(outsiderToken)))
                 .andExpect(status().isForbidden());
-        mockMvc.perform(post("/api/chat/conversations/{id}/report", conversationId)
+        CsrfTestSupport.performWithCsrf(mockMvc, post("/api/chat/conversations/{id}/report", conversationId)
                         .header("Authorization", bearer(senderToken)).contentType(MediaType.APPLICATION_JSON)
                         .content("{\"reason\":\"This member sent unwanted messages.\",\"optionalEvidence\":null}"))
                 .andExpect(status().isOk());
 
-        mockMvc.perform(patch("/api/chat/conversations/{id}/archive", conversationId)
+        CsrfTestSupport.performWithCsrf(mockMvc, patch("/api/chat/conversations/{id}/archive", conversationId)
                         .header("Authorization", bearer(senderToken)).contentType(MediaType.APPLICATION_JSON)
                         .content("{\"archived\":true}"))
                 .andExpect(status().isOk());
-        mockMvc.perform(get("/api/chat/conversations").header("Authorization", bearer(senderToken)))
+        CsrfTestSupport.performWithCsrf(mockMvc, get("/api/chat/conversations").header("Authorization", bearer(senderToken)))
                 .andExpect(status().isOk()).andExpect(jsonPath("$", hasSize(0)));
-        mockMvc.perform(get("/api/chat/conversations").param("archived", "true")
+        CsrfTestSupport.performWithCsrf(mockMvc, get("/api/chat/conversations").param("archived", "true")
                         .header("Authorization", bearer(senderToken)))
                 .andExpect(status().isOk()).andExpect(jsonPath("$", hasSize(1)));
 
-        mockMvc.perform(post("/api/chat/blocks/{userId}", userIdFrom(ownerToken))
+        CsrfTestSupport.performWithCsrf(mockMvc, post("/api/chat/blocks/{userId}", userIdFrom(ownerToken))
                         .header("Authorization", bearer(senderToken)))
                 .andExpect(status().isOk());
-        mockMvc.perform(post("/api/chat/conversations/{id}/messages", conversationId)
+        CsrfTestSupport.performWithCsrf(mockMvc, post("/api/chat/conversations/{id}/messages", conversationId)
                         .header("Authorization", bearer(senderToken))
                         .contentType(MediaType.APPLICATION_JSON).content(sendBody))
                 .andExpect(status().isForbidden());
-        mockMvc.perform(get("/api/chat/conversations").header("Authorization", bearer(senderToken)))
+        CsrfTestSupport.performWithCsrf(mockMvc, get("/api/chat/conversations").header("Authorization", bearer(senderToken)))
                 .andExpect(status().isOk()).andExpect(jsonPath("$", hasSize(0)));
-        mockMvc.perform(delete("/api/chat/blocks/{userId}", userIdFrom(ownerToken))
+        CsrfTestSupport.performWithCsrf(mockMvc, delete("/api/chat/blocks/{userId}", userIdFrom(ownerToken))
                         .header("Authorization", bearer(senderToken)))
                 .andExpect(status().isNoContent());
     }
 
     private void registerKey(String token) throws Exception {
-        mockMvc.perform(put("/api/chat/keys/me").header("Authorization", bearer(token))
+        CsrfTestSupport.performWithCsrf(mockMvc, put("/api/chat/keys/me").header("Authorization", bearer(token))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"publicKey":"public-key","encryptedPrivateKey":"encrypted-private-key","salt":"random-salt","iv":"random-iv"}
@@ -168,11 +169,11 @@ class ChatControllerTest {
     }
 
     private String registerAndLogin(String name, String email) throws Exception {
-        mockMvc.perform(post("/api/auth/register").contentType(MediaType.APPLICATION_JSON)
+        CsrfTestSupport.performWithCsrf(mockMvc, post("/api/auth/register").contentType(MediaType.APPLICATION_JSON)
                         .content("{\"name\":\"" + name + "\",\"email\":\"" + email
                                 + "\",\"password\":\"strong-pass-123\"}"))
                 .andExpect(status().isCreated());
-        String response = mockMvc.perform(post("/api/auth/login").contentType(MediaType.APPLICATION_JSON)
+        String response = CsrfTestSupport.performWithCsrf(mockMvc, post("/api/auth/login").contentType(MediaType.APPLICATION_JSON)
                         .content("{\"email\":\"" + email + "\",\"password\":\"strong-pass-123\"}"))
                 .andExpect(status().isOk())
                 .andReturn().getResponse().getContentAsString();
@@ -180,7 +181,7 @@ class ChatControllerTest {
     }
 
     private Long userIdFrom(String token) throws Exception {
-        String response = mockMvc.perform(get("/api/users/me").header("Authorization", bearer(token)))
+        String response = CsrfTestSupport.performWithCsrf(mockMvc, get("/api/users/me").header("Authorization", bearer(token)))
                 .andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
         return number(response, "id");
     }
