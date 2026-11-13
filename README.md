@@ -35,6 +35,7 @@ This is a complete full-stack project rather than a portfolio or static demo. Th
 - Keyword, category, type, and status filters
 - Database-backed pagination and page-size controls for the community board
 - Open → in progress → completed workflow
+- In-progress discussion for every post, with community comments, accepted-helper progress notes, note replies, and read-only history after completion
 - Live community-impact statistics
 - Responsive custom UI for desktop, tablet, and mobile
 - Form validation on both client and server
@@ -128,9 +129,11 @@ Base path: `/api/posts`
 | `POST` | `/api/posts` | Create a post |
 | `PUT` | `/api/posts/{id}` | Replace post details |
 | `PATCH` | `/api/posts/{id}/status` | Change post status |
+| `GET` | `/api/posts/{id}/updates` | Read progress comments and notes |
+| `POST` | `/api/posts/{id}/updates` | Add an in-progress comment, helper note, or note reply |
 | `DELETE` | `/api/posts/{id}` | Delete a post |
 
-Every post endpoint requires `Authorization: Bearer <token>`. Update/delete/status operations additionally require ownership. Anonymous visitors can access only registration, login, the static sign-in screen, and the hosting health check.
+Every post endpoint requires `Authorization: Bearer <token>`. Update/delete/status operations additionally require ownership. Any signed-in member can comment while a post is in progress; only the accepted helper can post progress notes. Comments and notes stay visible after completion, but are no longer writable. Anonymous visitors can access only registration, login, the static sign-in screen, and the hosting health check.
 
 The community board supports a separate optional `location` query parameter to find posts whose city or neighborhood text contains the entered value (case-insensitive). This is a text match, not a distance-radius search.
 

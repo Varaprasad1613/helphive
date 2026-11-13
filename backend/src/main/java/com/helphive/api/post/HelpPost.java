@@ -61,6 +61,9 @@ public class HelpPost {
     @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<HelpResponse> responses = new ArrayList<>();
 
+    @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<PostProgressUpdate> progressUpdates = new ArrayList<>();
+
     @Column(nullable = false, updatable = false)
     private Instant createdAt;
 
